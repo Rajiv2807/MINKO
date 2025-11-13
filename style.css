@@ -6,7 +6,7 @@
 }
 
 body {
-  font-family: "Helvetica Neue", Arial, sans-serif;
+  font-family: 'Inter', sans-serif;
   background: #fafafa;
   color: #333;
   line-height: 1.6;
@@ -73,7 +73,10 @@ nav a:hover {
 }
 
 /* Product Grid */
-main {
+.products-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.5rem;
   padding: 2rem;
 }
 
@@ -81,11 +84,8 @@ main {
   border: 1px solid #ddd;
   border-radius: 6px;
   padding: 1rem;
-  margin: 1rem;
-  display: inline-block;
-  width: 220px;
-  text-align: center;
   background: #fff;
+  text-align: center;
   transition: box-shadow 0.3s ease;
 }
 
@@ -178,4 +178,18 @@ footer {
   margin-top: 2rem;
   font-size: 0.9rem;
   color: #666;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  nav {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .hero {
+    padding: 3rem 1rem;
+  }
+  .products-grid {
+    grid-template-columns: 1fr;
+  }
 }
