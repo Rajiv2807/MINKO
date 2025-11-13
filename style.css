@@ -123,6 +123,30 @@ nav a:hover {
   background: #000;
 }
 
+/* Color Swatches */
+.color-options {
+  margin: 0.5rem 0 1rem;
+}
+
+.color-swatch {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  margin: 0 5px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 1px solid #ccc;
+  transition: transform 0.2s ease;
+}
+
+.color-swatch:hover {
+  transform: scale(1.1);
+}
+
+.color-swatch.walnut { background: #5d3a1a; }
+.color-swatch.wenge { background: #3b2f2f; }
+.color-swatch.white { background: #f5f5f5; border: 1px solid #999; }
+
 /* About & Contact Sections */
 .about, .contact {
   max-width: 700px;
