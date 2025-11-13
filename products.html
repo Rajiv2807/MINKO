@@ -2,9 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
   <title>Products - Minko Interiors</title>
   <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <script src="script.js" defer></script>
 </head>
 <body>
   <header>
@@ -23,179 +24,145 @@
 
       <!-- Study Table 1 -->
       <div class="product">
-        <img src="assets/study-table-1-walnut.jpg" alt="Study Table 1 - Walnut">
-        <h3>Study Table 1 (Walnut)</h3>
+        <img src="assets/study-table-1-walnut.jpg" alt="Study Table 1" class="product-image" id="study-table-1-img">
+        <h3>Study Table 1</h3>
         <p>₹6,499</p>
+        <div class="color-options">
+          <span class="color-swatch walnut" onclick="updateProductImage('study-table-1-img','assets/study-table-1-walnut.jpg')"></span>
+          <span class="color-swatch wenge" onclick="updateProductImage('study-table-1-img','assets/study-table-1-wenge.jpg')"></span>
+          <span class="color-swatch white" onclick="updateProductImage('study-table-1-img','assets/study-table-1-white.jpg')"></span>
+        </div>
         <button class="snipcart-add-item"
-          data-item-id="study-table-1-walnut"
-          data-item-name="Study Table 1 - Walnut"
+          data-item-id="study-table-1"
+          data-item-name="Study Table 1"
           data-item-price="6499"
           data-item-url="/products.html"
-          data-item-description="Minimal Study Table Model 1 in Walnut finish">
-          Add to Cart
-        </button>
-      </div>
-      <div class="product">
-        <img src="assets/study-table-1-wenge.jpg" alt="Study Table 1 - Wenge">
-        <h3>Study Table 1 (Wenge)</h3>
-        <p>₹6,499</p>
-        <button class="snipcart-add-item"
-          data-item-id="study-table-1-wenge"
-          data-item-name="Study Table 1 - Wenge"
-          data-item-price="6499"
-          data-item-url="/products.html"
-          data-item-description="Minimal Study Table Model 1 in Wenge finish">
-          Add to Cart
-        </button>
-      </div>
-      <div class="product">
-        <img src="assets/study-table-1-white.jpg" alt="Study Table 1 - White">
-        <h3>Study Table 1 (White)</h3>
-        <p>₹6,499</p>
-        <button class="snipcart-add-item"
-          data-item-id="study-table-1-white"
-          data-item-name="Study Table 1 - White"
-          data-item-price="6499"
-          data-item-url="/products.html"
-          data-item-description="Minimal Study Table Model 1 in White finish">
+          data-item-description="Minimal Study Table Model 1 with customizable finishes">
           Add to Cart
         </button>
       </div>
 
       <!-- Study Table 2 -->
       <div class="product">
-        <img src="assets/study-table-2-walnut.jpg" alt="Study Table 2 - Walnut">
-        <h3>Study Table 2 (Walnut)</h3>
+        <img src="assets/study-table-2-walnut.jpg" alt="Study Table 2" class="product-image" id="study-table-2-img">
+        <h3>Study Table 2</h3>
         <p>₹7,499</p>
+        <div class="color-options">
+          <span class="color-swatch walnut" onclick="updateProductImage('study-table-2-img','assets/study-table-2-walnut.jpg')"></span>
+          <span class="color-swatch wenge" onclick="updateProductImage('study-table-2-img','assets/study-table-2-wenge.jpg')"></span>
+          <span class="color-swatch white" onclick="updateProductImage('study-table-2-img','assets/study-table-2-white.jpg')"></span>
+        </div>
         <button class="snipcart-add-item"
-          data-item-id="study-table-2-walnut"
-          data-item-name="Study Table 2 - Walnut"
+          data-item-id="study-table-2"
+          data-item-name="Study Table 2"
           data-item-price="7499"
           data-item-url="/products.html"
-          data-item-description="Minimal Study Table Model 2 in Walnut finish">
-          Add to Cart
-        </button>
-      </div>
-      <div class="product">
-        <img src="assets/study-table-2-wenge.jpg" alt="Study Table 2 - Wenge">
-        <h3>Study Table 2 (Wenge)</h3>
-        <p>₹7,499</p>
-        <button class="snipcart-add-item"
-          data-item-id="study-table-2-wenge"
-          data-item-name="Study Table 2 - Wenge"
-          data-item-price="7499"
-          data-item-url="/products.html"
-          data-item-description="Minimal Study Table Model 2 in Wenge finish">
-          Add to Cart
-        </button>
-      </div>
-      <div class="product">
-        <img src="assets/study-table-2-white.jpg" alt="Study Table 2 - White">
-        <h3>Study Table 2 (White)</h3>
-        <p>₹7,499</p>
-        <button class="snipcart-add-item"
-          data-item-id="study-table-2-white"
-          data-item-name="Study Table 2 - White"
-          data-item-price="7499"
-          data-item-url="/products.html"
-          data-item-description="Minimal Study Table Model 2 in White finish">
+          data-item-description="Minimal Study Table Model 2 with customizable finishes">
           Add to Cart
         </button>
       </div>
 
       <!-- Coffee Table -->
       <div class="product">
-        <img src="assets/coffee-table-walnut.jpg" alt="Coffee Table - Walnut">
-        <h3>Coffee Table (Walnut)</h3>
+        <img src="assets/coffee-table-walnut.jpg" alt="Coffee Table" class="product-image" id="coffee-table-img">
+        <h3>Coffee Table</h3>
         <p>₹3,999</p>
+        <div class="color-options">
+          <span class="color-swatch walnut" onclick="updateProductImage('coffee-table-img','assets/coffee-table-walnut.jpg')"></span>
+          <span class="color-swatch wenge" onclick="updateProductImage('coffee-table-img','assets/coffee-table-wenge.jpg')"></span>
+          <span class="color-swatch white" onclick="updateProductImage('coffee-table-img','assets/coffee-table-white.jpg')"></span>
+        </div>
         <button class="snipcart-add-item"
-          data-item-id="coffee-table-walnut"
-          data-item-name="Coffee Table - Walnut"
+          data-item-id="coffee-table"
+          data-item-name="Coffee Table"
           data-item-price="3999"
           data-item-url="/products.html"
-          data-item-description="Minimal Coffee Table in Walnut finish">
-          Add to Cart
-        </button>
-      </div>
-      <div class="product">
-        <img src="assets/coffee-table-wenge.jpg" alt="Coffee Table - Wenge">
-        <h3>Coffee Table (Wenge)</h3>
-        <p>₹3,999</p>
-        <button class="snipcart-add-item"
-          data-item-id="coffee-table-wenge"
-          data-item-name="Coffee Table - Wenge"
-          data-item-price="3999"
-          data-item-url="/products.html"
-          data-item-description="Minimal Coffee Table in Wenge finish">
-          Add to Cart
-        </button>
-      </div>
-      <div class="product">
-        <img src="assets/coffee-table-white.jpg" alt="Coffee Table - White">
-        <h3>Coffee Table (White)</h3>
-        <p>₹3,999</p>
-        <button class="snipcart-add-item"
-          data-item-id="coffee-table-white"
-          data-item-name="Coffee Table - White"
-          data-item-price="3999"
-          data-item-url="/products.html"
-          data-item-description="Minimal Coffee Table in White finish">
+          data-item-description="Minimal Coffee Table with customizable finishes">
           Add to Cart
         </button>
       </div>
 
       <!-- Bedside Table -->
       <div class="product">
-        <img src="assets/bedside-table-walnut.jpg" alt="Bedside Table - Walnut">
-        <h3>Bedside Table (Walnut)</h3>
+        <img src="assets/bedside-table-walnut.jpg" alt="Bedside Table" class="product-image" id="bedside-table-img">
+        <h3>Bedside Table</h3>
         <p>₹2,999</p>
+        <div class="color-options">
+          <span class="color-swatch walnut" onclick="updateProductImage('bedside-table-img','assets/bedside-table-walnut.jpg')"></span>
+          <span class="color-swatch wenge" onclick="updateProductImage('bedside-table-img','assets/bedside-table-wenge.jpg')"></span>
+          <span class="color-swatch white" onclick="updateProductImage('bedside-table-img','assets/bedside-table-white.jpg')"></span>
+        </div>
         <button class="snipcart-add-item"
-          data-item-id="bedside-table-walnut"
-          data-item-name="Bedside Table - Walnut"
+          data-item-id="bedside-table"
+          data-item-name="Bedside Table"
           data-item-price="2999"
           data-item-url="/products.html"
-          data-item-description="Minimal Bedside Table in Walnut finish">
-          Add to Cart
-        </button>
-      </div>
-      <div class="product">
-        <img src="assets/bedside-table-wenge.jpg" alt="Bedside Table - Wenge">
-        <h3>Bedside Table (Wenge)</h3>
-        <p>₹2,999</p>
-        <button class="snipcart-add-item"
-          data-item-id="bedside-table-wenge"
-          data-item-name="Bedside Table - Wenge"
-          data-item-price="2999"
-          data-item-url="/products.html"
-          data-item-description="Minimal Bedside Table in Wenge finish">
-          Add to Cart
-        </button>
-      </div>
-      <div class="product">
-        <img src="assets/bedside-table-white.jpg" alt="Bedside Table - White">
-        <h3>Bedside Table (White)</h3>
-        <p>₹2,999</p>
-        <button class="snipcart-add-item"
-          data-item-id="bedside-table-white"
-          data-item-name="Bedside Table - White"
-          data-item-price="2999"
-          data-item-url="/products.html"
-          data-item-description="Minimal Bedside Table in White finish">
+          data-item-description="Minimal Bedside Table with customizable finishes">
           Add to Cart
         </button>
       </div>
 
       <!-- Shoe Rack -->
       <div class="product">
-        <img src="assets/shoe-rack-walnut.jpg" alt="Shoe Rack - Walnut">
-        <h3>Shoe Rack (Walnut)</h3>
+        <img src="assets/shoe-rack-walnut.jpg" alt="Shoe Rack" class="product-image" id="shoe-rack-img">
+        <h3>Shoe Rack</h3>
         <p>₹4,499</p>
+        <div class="color-options">
+          <span class="color-swatch walnut" onclick="updateProductImage('shoe-rack-img','assets/shoe-rack-walnut.jpg')"></span>
+          <span class="color-swatch wenge" onclick="updateProductImage('shoe-rack-img','assets/shoe-rack-wenge.jpg')"></span>
+          <span class="color-swatch white" onclick="updateProductImage('shoe-rack-img','assets/shoe-rack-white.jpg')"></span>
+        </div>
         <button class="snipcart-add-item"
-          data-item-id="shoe-rack-walnut"
-          data-item-name="Shoe Rack - Walnut"
+          data-item-id="shoe-rack"
+          data-item-name="Shoe Rack"
           data-item-price="4499"
           data-item-url="/products.html"
-          data-item-description="Minimal Shoe Rack in Walnut finish">
+          data-item-description="Minimal Shoe Rack with customizable finishes">
           Add to Cart
         </button>
       </div>
+
+      <!-- Book Shelf -->
+      <div class="product">
+        <img src="assets/book-shelf-walnut.jpg" alt="Book Shelf" class="product-image" id="book-shelf-img">
+        <h3>Book Shelf</h3>
+        <p>₹5,999</p>
+        <div class="color-options">
+          <span class="color-swatch walnut" onclick="updateProductImage('book-shelf-img','assets/book-shelf-walnut.jpg')"></span>
+          <span class="color-swatch wenge" onclick="updateProductImage('book-shelf-img','assets/book-shelf-wenge.jpg')"></span>
+          <span class="color-swatch white" onclick="updateProductImage('book-shelf-img','assets/book-shelf-white.jpg')"></span>
+        </div>
+        <button class="snipcart-add-item"
+          data-item-id="book-shelf"
+          data-item-name="Book Shelf"
+          data-item-price="5999"
+          data-item-url="/products.html"
+          data-item-description="Minimal Book Shelf with customizable finishes">
+          Add to Cart
+        </button>
+      </div>
+
+      <!-- Wardrobe -->
+      <div class="product">
+        <img src="assets/wardrobe-walnut.jpg" alt="Wardrobe" class="product-image" id="wardrobe-img">
+        <h3>Wardrobe</h3>
+        <p>₹12,999</p>
+        <div class="color-options">
+          <span class="color-swatch walnut" onclick="updateProductImage('wardrobe-img','assets/wardrobe-walnut.jpg')"></span>
+          <span class="color-swatch wenge" onclick="updateProductImage('wardrobe-img','assets/wardrobe-wenge.jpg')"></span>
+          <span class="color-swatch white" onclick="updateProductImage('wardrobe-img','assets/wardrobe-white.jpg')"></span>
+        </div>
+        <button class="snipcart-add-item"
+          data-item-id="wardrobe"
+          data-item-name="Wardrobe"
+          data-item-price="12999"
+          data-item-url="/products.html"
+          data-item-description="Minimal Wardrobe with customizable finishes">
+          Add to Cart
+        </button>
+      </div>
+
+    </div>
+  </main>
+</body>
+</html>
