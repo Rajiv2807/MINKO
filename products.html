@@ -1,27 +1,30 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Products - Minko Interiors</title>
-  <link rel="stylesheet" href="style.css">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
 
   <!-- Snipcart CSS/JS -->
   <link rel="stylesheet" href="https://cdn.snipcart.com/themes/v3.0.31/default/snipcart.css" />
   <script async src="https://cdn.snipcart.com/themes/v3.0.31/default/snipcart.js"></script>
   <div hidden id="snipcart" data-api-key="OWRkYTk0NGQtMGFhZS00OGMwLWE1ZjctNzgyMGM3NmUzODNlNjM4OTg2NDkwODAzODYyNzUx"></div>
 
+  <!-- Shared includes + product swatch logic -->
   <script src="script.js" defer></script>
 </head>
 <body>
+  <!-- Shared header placeholder -->
   <div id="site-header"></div>
 
   <main>
-    <div class="products-grid">
+    <h2 style="text-align:center; margin:2rem 0;">Our Products</h2>
 
+    <div class="products-grid">
       <!-- Study Table 1 -->
       <div class="product">
-        <img src="assets/study-table-1-walnut.jpg" alt="Study Table 1" class="product-image" id="study-table-1-img">
+        <img src="assets/study-table-1-walnut.jpg" alt="Study Table 1" id="study-table-1-img" />
         <h3>Study Table 1</h3>
         <p>₹6,499</p>
         <div class="color-options">
@@ -41,7 +44,7 @@
 
       <!-- Study Table 2 -->
       <div class="product">
-        <img src="assets/study-table-2-walnut.jpg" alt="Study Table 2" class="product-image" id="study-table-2-img">
+        <img src="assets/study-table-2-walnut.jpg" alt="Study Table 2" id="study-table-2-img" />
         <h3>Study Table 2</h3>
         <p>₹7,499</p>
         <div class="color-options">
@@ -61,7 +64,7 @@
 
       <!-- Coffee Table -->
       <div class="product">
-        <img src="assets/coffee-table-walnut.jpg" alt="Coffee Table" class="product-image" id="coffee-table-img">
+        <img src="assets/coffee-table-walnut.jpg" alt="Coffee Table" id="coffee-table-img" />
         <h3>Coffee Table</h3>
         <p>₹3,999</p>
         <div class="color-options">
@@ -81,7 +84,7 @@
 
       <!-- Bedside Table -->
       <div class="product">
-        <img src="assets/bedside-table-walnut.jpg" alt="Bedside Table" class="product-image" id="bedside-table-img">
+        <img src="assets/bedside-table-walnut.jpg" alt="Bedside Table" id="bedside-table-img" />
         <h3>Bedside Table</h3>
         <p>₹2,999</p>
         <div class="color-options">
@@ -101,7 +104,7 @@
 
       <!-- Shoe Rack -->
       <div class="product">
-        <img src="assets/shoe-rack-walnut.jpg" alt="Shoe Rack" class="product-image" id="shoe-rack-img">
+        <img src="assets/shoe-rack-walnut.jpg" alt="Shoe Rack" id="shoe-rack-img" />
         <h3>Shoe Rack</h3>
         <p>₹4,499</p>
         <div class="color-options">
@@ -121,7 +124,7 @@
 
       <!-- Book Shelf -->
       <div class="product">
-        <img src="assets/book-shelf-walnut.jpg" alt="Book Shelf" class="product-image" id="book-shelf-img">
+        <img src="assets/book-shelf-walnut.jpg" alt="Book Shelf" id="book-shelf-img" />
         <h3>Book Shelf</h3>
         <p>₹5,999</p>
         <div class="color-options">
@@ -141,7 +144,7 @@
 
       <!-- Wardrobe -->
       <div class="product">
-        <img src="assets/wardrobe-walnut.jpg" alt="Wardrobe" class="product-image" id="wardrobe-img">
+        <img src="assets/wardrobe-walnut.jpg" alt="Wardrobe" id="wardrobe-img" />
         <h3>Wardrobe</h3>
         <p>₹12,999</p>
         <div class="color-options">
@@ -149,6 +152,20 @@
           <span class="color-swatch wenge" onclick="updateProductImage('wardrobe-img','assets/wardrobe-wenge.jpg')"></span>
           <span class="color-swatch white" onclick="updateProductImage('wardrobe-img','assets/wardrobe-white.jpg')"></span>
         </div>
+        <!-- FIX: Add-to-Cart button restored for Wardrobe -->
         <button class="snipcart-add-item"
           data-item-id="wardrobe"
-          data-item-name="Ward
+          data-item-name="Wardrobe"
+          data-item-price="12999"
+          data-item-url="/products.html"
+          data-item-description="Minimal Wardrobe with customizable finishes">
+          Add to Cart
+        </button>
+      </div>
+    </div>
+  </main>
+
+  <!-- FIX: Shared footer placeholder restored -->
+  <div id="site-footer"></div>
+</body>
+</html>
