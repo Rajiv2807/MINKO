@@ -8,45 +8,45 @@
 
   <!-- Snipcart CSS -->
   <link rel="stylesheet" href="https://cdn.snipcart.com/themes/v3.0.31/default/snipcart.css" />
-
-  <!-- Snipcart JS -->
   <script async src="https://cdn.snipcart.com/themes/v3.0.31/default/snipcart.js"></script>
-
-  <!-- Snipcart API key -->
   <div hidden id="snipcart" data-api-key="OWRkYTk0NGQtMGFhZS00OGMwLWE1ZjctNzgyMGM3NmUzODNlNjM4OTg2NDkwODAzODYyNzUx"></div>
 </head>
 <body>
+  <!-- Header -->
   <header>
-    <h1>Contact Us</h1>
+    <h1><a href="index.html" class="logo">Minko</a></h1>
     <nav>
-      <a href="index.html">Home</a>
-      <a href="products.html">Products</a>
-      <a href="about.html">About</a>
+      <a href="products.html">Furniture</a>
+      <a href="home-interior.html">Home Interior</a>
       <a href="contact.html">Contact</a>
       <a href="#" class="snipcart-checkout">Cart</a>
     </nav>
   </header>
 
-  <main>
-    <section class="contact">
-      <h2>We’d love to hear from you</h2>
-      <form name="contact" method="POST" data-netlify="true">
-        <label>Your Name:
-          <input type="text" name="name" required>
-        </label>
-        <label>Email:
-          <input type="email" name="email" required>
-        </label>
-        <label>Message:
-          <textarea name="message" required></textarea>
-        </label>
-        <button type="submit">Send</button>
-      </form>
-    </section>
+  <!-- Body -->
+  <main class="contact">
+    <h2>Contact Us</h2>
+    <form>
+      <label for="name">Name</label>
+      <input type="text" id="name" name="name" required>
+
+      <label for="email">Email</label>
+      <input type="email" id="email" name="email" required>
+
+      <label for="message">Message</label>
+      <textarea id="message" name="message" required></textarea>
+
+      <button type="submit">Send Message</button>
+    </form>
   </main>
 
+  <!-- Footer -->
   <footer>
-    <p>&copy; 2025 Minko Interiors</p>
+    <p>&copy; 2025 Minko Interiors. All rights reserved.</p>
+    <nav class="footer-nav">
+      <a href="about.html">About Us</a>
+      <a href="contact.html">Contact</a>
+    </nav>
   </footer>
 </body>
 </html>
