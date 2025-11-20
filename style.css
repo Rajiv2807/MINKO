@@ -76,6 +76,49 @@ nav a:hover {
   background: #000;
 }
 
+/* Hero tweak for interior page */
+.interior-hero {
+  background: #f9f9f9;
+  padding: 4rem 2rem;
+}
+
+/* Showcase grid */
+.interior-showcase {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 2rem;
+  padding: 2rem;
+}
+
+.showcase-item {
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: 6px;
+  padding: 1rem;
+  text-align: center;
+  transition: box-shadow 0.3s ease;
+}
+
+.showcase-item:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.showcase-item img {
+  max-width: 100%;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+}
+
+.showcase-item h3 {
+  margin-bottom: 0.5rem;
+  font-size: 1.2rem;
+}
+
+.showcase-item p {
+  color: #555;
+  font-size: 0.95rem;
+}
+
 /* Product Grid */
 .products-grid {
   display: grid;
