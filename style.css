@@ -129,6 +129,51 @@ nav a:hover {
   flex-grow: 1;           /* ensures text fills space evenly */
 }
 
+/* Zoom Gallery Section */
+.zoom-gallery {
+  padding: 4rem 2rem;
+  background: #fdfdfd;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.zoom-gallery h2 {
+  font-size: 1.8rem;
+  margin-bottom: 2rem;
+}
+
+.zoom-container {
+  position: relative;
+  height: 400px; /* max size similar to showcase item */
+}
+
+.zoom-img {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 200px;
+  height: 200px;
+  object-fit: cover;
+  border-radius: 6px;
+  transform: translate(-50%, -50%) scale(0.5);
+  opacity: 0;
+  transition: transform 1.5s ease, opacity 1.5s ease;
+}
+
+/* Active state: zoom in to max size */
+.zoom-img.active {
+  transform: translate(-50%, -50%) scale(2); /* scale to fill container */
+  opacity: 1;
+}
+
+/* Disappear after zoom */
+.zoom-img.disappear {
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.5);
+}
+
+
 
 /* Product Grid */
 .products-grid {
