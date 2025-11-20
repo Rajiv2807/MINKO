@@ -315,9 +315,7 @@ footer {
 }
 
 .gallery-slot {
-  position: relative;
   overflow: hidden;
-  display: block; /* not flex — avoid centering rules overriding children */
 }
 
 .gallery-slot img {
@@ -325,7 +323,6 @@ footer {
   height: 100%;
   object-fit: cover;
   transform: scale(0);
-  opacity: 0;
   transition: transform 2s ease-out;
 }
 
