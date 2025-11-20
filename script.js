@@ -30,18 +30,31 @@ document.addEventListener("DOMContentLoaded", () => {
   ];
 
   const minScale = 0.5;   // minimum zoom scale
-  const maxScale = 2.5;   // maximum zoom scale
+  const maxScale = 1.0;   // maximum zoom scale (same as showcase slot size)
   let lastScroll = window.scrollY;
+  let galleryActive = false;
 
   // initialize dataset scale with staggered start sizes
   slots.forEach((img, i) => {
-    let startScale = minScale + i * 0.2; // staggered start scales
+    let startScale = minScale + i * 0.1; // staggered start scales
     img.style.transform = `scale(${startScale})`;
     img.dataset.scale = startScale;
     img.style.opacity = 1;
   });
 
+  // Observer to activate gallery only when in view
+  const gallerySection = document.querySelector(".corner-gallery");
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      galleryActive = entry.isIntersecting;
+    });
+  }, { threshold: 0.2 });
+
+  if (gallerySection) observer.observe(gallerySection);
+
   window.addEventListener("scroll", () => {
+    if (!galleryActive) return; // only animate when gallery is visible
+
     const currentScroll = window.scrollY;
     const direction = currentScroll > lastScroll ? "down" : "up";
     lastScroll = currentScroll;
@@ -58,11 +71,11 @@ document.addEventListener("DOMContentLoaded", () => {
           setTimeout(() => {
             const nextIndex = Math.floor(Math.random() * images.length);
             img.src = images[nextIndex];
-            currentScale = minScale + i * 0.2; // reset to start scale
+            currentScale = minScale + i * 0.1; // reset to start scale
             img.style.transform = `scale(${currentScale})`;
             img.dataset.scale = currentScale;
             img.style.opacity = 1;
-          }, 300); // fade duration
+          }, 300);
         }
       } else {
         currentScale -= speed;
