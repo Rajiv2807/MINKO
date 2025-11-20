@@ -61,7 +61,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     slots.forEach((img, i) => {
       let currentScale = parseFloat(img.dataset.scale);
-      const speed = 0.005 + i * 0.002; // much slower zoom speeds
+      const speed = 0.005 + i * 0.002; // very slow zoom speeds
 
       if (direction === "down") {
         currentScale += speed;
@@ -101,6 +101,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
       img.style.transform = `scale(${currentScale}) translate(${tx}px, ${ty}px)`;
       img.dataset.scale = currentScale;
+    });
+
+    // Animate text color per letter
+    const galleryTitleSpans = document.querySelectorAll(".gallery-title span");
+    const scrollRatio = Math.min(1, Math.max(0, window.scrollY / window.innerHeight));
+
+    galleryTitleSpans.forEach((span, i) => {
+      const delay = i * 0.05;
+      const progress = Math.min(1, Math.max(0, scrollRatio - delay));
+      const grayValue = Math.floor(255 - progress * 255); // white (255) → black (0)
+      span.style.color = `rgb(${grayValue}, ${grayValue}, ${grayValue})`;
     });
   });
 
