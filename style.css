@@ -323,7 +323,7 @@ footer {
   height: 100%;
   object-fit: cover;
   transform: scale(0);
-  transition: transform 2s ease-out;
+  transition: transform 2s cubic-bezier(0.68, -0.55, 0.27, 1.55);
 }
 
 
