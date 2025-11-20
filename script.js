@@ -37,7 +37,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // initialize dataset scale with staggered start sizes
   slots.forEach((img, i) => {
     let startScale = minScale + i * 0.1; // staggered start scales
-    img.style.transform = `scale(${startScale})`;
+    img.style.transform = `scale(${startScale}) translate(0,0)`;
     img.dataset.scale = startScale;
     img.style.opacity = 1;
   });
@@ -61,40 +61,63 @@ document.addEventListener("DOMContentLoaded", () => {
 
     slots.forEach((img, i) => {
       let currentScale = parseFloat(img.dataset.scale);
-      const speed = 0.02 + i * 0.005; // staggered zoom speeds
+      const speed = 0.005 + i * 0.002; // much slower zoom speeds
 
       if (direction === "down") {
         currentScale += speed;
         if (currentScale >= maxScale) {
-          // fade out, swap image, fade in
           img.style.opacity = 0;
           setTimeout(() => {
             const nextIndex = Math.floor(Math.random() * images.length);
             img.src = images[nextIndex];
-            currentScale = minScale + i * 0.1; // reset to start scale
-            img.style.transform = `scale(${currentScale})`;
+            currentScale = minScale + i * 0.1;
+            img.style.transform = `scale(${currentScale}) translate(0,0)`;
             img.dataset.scale = currentScale;
             img.style.opacity = 1;
-          }, 300);
+          }, 400);
         }
       } else {
         currentScale -= speed;
         if (currentScale <= minScale) {
-          // fade out, swap image, fade in
           img.style.opacity = 0;
           setTimeout(() => {
             const nextIndex = Math.floor(Math.random() * images.length);
             img.src = images[nextIndex];
-            currentScale = maxScale; // reset to max scale for zooming out
-            img.style.transform = `scale(${currentScale})`;
+            currentScale = maxScale;
+            img.style.transform = `scale(${currentScale}) translate(0,0)`;
             img.dataset.scale = currentScale;
             img.style.opacity = 1;
-          }, 300);
+          }, 400);
         }
       }
 
-      img.style.transform = `scale(${currentScale})`;
+      // Parallax drift outward from corners
+      const drift = (currentScale - minScale) * 20; // drift factor
+      let tx = 0, ty = 0;
+      if (img.closest(".top-left")) { tx = -drift; ty = -drift; }
+      if (img.closest(".top-right")) { tx = drift; ty = -drift; }
+      if (img.closest(".bottom-left")) { tx = -drift; ty = drift; }
+      if (img.closest(".bottom-right")) { tx = drift; ty = drift; }
+
+      img.style.transform = `scale(${currentScale}) translate(${tx}px, ${ty}px)`;
       img.dataset.scale = currentScale;
     });
   });
+
+  // Hover zoom effect
+  if (gallerySection) {
+    gallerySection.addEventListener("mouseenter", () => {
+      slots.forEach((img, i) => {
+        img.style.transition = "transform 2s ease, opacity 0.5s ease";
+        img.style.transform = `scale(${maxScale})`;
+      });
+    });
+    gallerySection.addEventListener("mouseleave", () => {
+      slots.forEach((img, i) => {
+        let currentScale = parseFloat(img.dataset.scale);
+        img.style.transition = "transform 2s ease, opacity 0.5s ease";
+        img.style.transform = `scale(${currentScale})`;
+      });
+    });
+  }
 });
