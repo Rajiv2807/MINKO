@@ -63,7 +63,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const slotProgress = Math.min(1, Math.max(0, progress - rowDelay));
 
       img.style.transform = `scale(${slotProgress})`;
-      img.style.opacity = slotProgress;
+      //img.style.opacity = slotProgress;
     });
 
     // Animate text color per letter
