@@ -29,14 +29,16 @@ document.addEventListener("DOMContentLoaded", () => {
     "assets/interior/5.jpg","assets/interior/6.jpg","assets/interior/7.jpg","assets/interior/8.jpg"
   ];
 
-  const minScale = 1;   // minimum zoom scale
-  const maxScale = 4;   // maximum zoom scale
+  const minSize = 150; // px
+  const maxSize = 400; // px
   let lastScroll = window.scrollY;
 
-  // initialize dataset scale
+  // initialize dataset size with staggered start sizes
   slots.forEach((img, i) => {
-    img.dataset.scale = (minScale + i * 0.2).toString(); // different start sizes
-    img.style.transform = `scale(${img.dataset.scale})`;
+    let startSize = minSize + i * 30; // staggered start sizes
+    img.style.width = startSize + "px";
+    img.style.height = startSize + "px";
+    img.dataset.size = startSize;
   });
 
   window.addEventListener("scroll", () => {
@@ -45,29 +47,30 @@ document.addEventListener("DOMContentLoaded", () => {
     lastScroll = currentScroll;
 
     slots.forEach((img, i) => {
-      let currentScale = parseFloat(img.dataset.scale || minScale);
-      const speed = 0.05 + i * 0.01; // staggered zoom speeds
+      let currentSize = parseFloat(img.dataset.size);
+      const speed = 5 + i * 2; // staggered zoom speeds
 
       if (direction === "down") {
-        currentScale += speed;
-        if (currentScale >= maxScale) {
+        currentSize += speed;
+        if (currentSize >= maxSize) {
           // cycle to next image
           const nextIndex = Math.floor(Math.random() * images.length);
           img.src = images[nextIndex];
-          currentScale = minScale + i * 0.2; // reset to start size
+          currentSize = minSize + i * 30; // reset to start size
         }
       } else {
-        currentScale -= speed;
-        if (currentScale <= minScale) {
+        currentSize -= speed;
+        if (currentSize <= minSize) {
           // cycle to next image
           const nextIndex = Math.floor(Math.random() * images.length);
           img.src = images[nextIndex];
-          currentScale = maxScale; // reset to max size for zooming out
+          currentSize = maxSize; // reset to max size for zooming out
         }
       }
 
-      img.style.transform = `scale(${currentScale})`;
-      img.dataset.scale = currentScale.toString();
+      img.style.width = currentSize + "px";
+      img.style.height = currentSize + "px";
+      img.dataset.size = currentSize;
     });
   });
 });
