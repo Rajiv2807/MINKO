@@ -326,7 +326,7 @@ footer {
   object-fit: cover;
   transform: scale(0);
   opacity: 0;
-  transition: transform 0.8s ease, opacity 0.8s ease;
+  transition: transform 1.8s ease, opacity 1.8s ease;
 }
 
 
