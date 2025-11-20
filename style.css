@@ -152,6 +152,11 @@ nav a.active {
   transform: scale(1.1);
 }
 
+.color-swatch.active {
+  outline: 2px solid #000;
+  transform: scale(1.1);
+}
+
 .color-swatch.walnut { background: #5d3a1a; }
 .color-swatch.wenge { background: #3b2f2f; }
 .color-swatch.white { background: #f5f5f5; border: 1px solid #999; }
@@ -279,51 +284,74 @@ footer {
   flex-grow: 1;
 }
 
-/* Corner Gallery Section */
-.corner-gallery {
+/* Eight-slot Gallery */
+.eight-gallery {
   position: relative;
-  height: 600px;
+  padding: 4rem 2rem;
   background: #fdfdfd;
   overflow: hidden;
 }
 
 .gallery-title {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 4rem;       /* larger font size */
-  font-weight: 900;      /* thicker text */
-  z-index: 10;
+  text-align: center;
+  font-size: 4rem;
+  font-weight: 900;
+  margin-bottom: 2rem;
   display: flex;
+  justify-content: center;
   gap: 0.2rem;
 }
 
 .gallery-title span {
-  color: white;          /* start color */
-  transition: color 1.5s ease; /* smooth color change */
+  color: white;
+  transition: color 1.5s ease;
 }
 
-/* Position slots at corners */
-.corner-slot {
-  position: absolute;
-  width: 200px;   /* max size same as showcase slot */
-  height: 200px;
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(2, 200px);
+  gap: 1rem;
+}
+
+.gallery-slot {
+  position: relative;
+  overflow: hidden;
   display: flex;
   justify-content: center;
   align-items: center;
 }
 
-.top-left { top: 20px; left: 20px; }
-.top-right { top: 20px; right: 20px; }
-.bottom-left { bottom: 20px; left: 20px; }
-.bottom-right { bottom: 20px; right: 20px; }
-
-.corner-slot img {
-  border-radius: 8px;
-  transform-origin: center center;
-  transition: transform 0.3s linear, opacity 0.3s linear;
+.gallery-slot img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transform: scale(0); /* start at zero */
+  opacity: 0;          /* start invisible */
+  transition: transform 0.8s ease, opacity 0.8s ease;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  nav {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .hero {
+    padding: 3rem 1rem;
+  }
+  .products-grid {
+    grid-template-columns: 1fr;
+  }
+  footer {
+    flex-direction: column;
+    text-align: center;
+  }
+  .footer-right {
+    margin-top: 0.5rem;
+  }
+  .gallery-grid {
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(4, 200px);
+  }
 }
