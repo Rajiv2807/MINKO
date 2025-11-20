@@ -9,7 +9,7 @@ function loadSharedPart(id, file) {
     .catch(err => console.error(`Error loading ${file}:`, err));
 }
 
-// Product swatch image update: change a main product image by ID
+// Product swatch image update
 function updateProductImage(imgId, newSrc) {
   const imgElement = document.getElementById(imgId);
   if (imgElement) {
@@ -23,15 +23,16 @@ document.addEventListener("DOMContentLoaded", () => {
   loadSharedPart("site-footer", "footer.html");
 
   // --- Swatch interactions ---
-  // Expected markup example:
-  // <div class="color-swatch" data-target="product-img-1" data-src="assets/products/sofa-walnut.jpg"></div>
+  // Example markup:
+  // <div class="color-swatch walnut" data-target="product-img-1" data-src="assets/products/sofa-walnut.jpg"></div>
   const swatches = document.querySelectorAll(".color-swatch[data-target][data-src]");
   swatches.forEach(swatch => {
     swatch.addEventListener("click", () => {
       const targetId = swatch.getAttribute("data-target");
       const newSrc = swatch.getAttribute("data-src");
       updateProductImage(targetId, newSrc);
-      // Optional visual feedback
+
+      // Visual feedback
       const siblings = swatch.parentElement?.querySelectorAll(".color-swatch");
       siblings?.forEach(s => s.classList.remove("active"));
       swatch.classList.add("active");
@@ -54,15 +55,18 @@ document.addEventListener("DOMContentLoaded", () => {
     const maxOffset = windowHeight / 2 + rect.height / 2;
     const progress = 1 - Math.min(centerOffset / maxOffset, 1);
 
-    // Staggered zoom + fade for images
+    // Staggered zoom + fade for images (row-based)
     slots.forEach((img, i) => {
-      const delay = i * 0.08; // stagger factor per slot
-      const slotProgress = Math.min(1, Math.max(0, progress - delay));
+      const columns = 4;                  // grid columns
+      const rowIndex = Math.floor(i / columns);
+      const rowDelay = rowIndex * 0.2;    // stagger rows (top row first)
+      const slotProgress = Math.min(1, Math.max(0, progress - rowDelay));
+
       img.style.transform = `scale(${slotProgress})`;
       img.style.opacity = slotProgress;
     });
 
-    // Per-letter color animation: white -> black
+    // Animate text color per letter
     titleSpans.forEach((span, i) => {
       const delay = i * 0.05;
       const letterProgress = Math.min(1, Math.max(0, progress - delay));
