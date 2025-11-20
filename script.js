@@ -57,14 +57,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Staggered zoom + fade for images (row-based)
     slots.forEach((img, i) => {
-      const columns = 4;                  // grid columns
-      const rowIndex = Math.floor(i / columns);
-      const rowDelay = rowIndex * 0.2;    // stagger rows (top row first)
-      const slotProgress = Math.min(1, Math.max(0, progress - rowDelay));
+  const columns = 4;                         // grid columns
+  const rowIndex = Math.floor(i / columns);  // row number
+  const colIndex = i % columns;              // column number
 
-      img.style.transform = `scale(${slotProgress})`;
-      //img.style.opacity = slotProgress;
-    });
+  const rowDelay = rowIndex * 0.2;           // stagger rows (top row first)
+  const colDelay = colIndex * 0.1;           // stagger columns (left to right)
+  const totalDelay = rowDelay + colDelay;
+
+  const slotProgress = Math.min(1, Math.max(0, progress - totalDelay));
+
+  img.style.transform = `scale(${slotProgress})`;
+});
 
     // Animate text color per letter
     titleSpans.forEach((span, i) => {
