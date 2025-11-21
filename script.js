@@ -9,7 +9,7 @@ function loadSharedPart(id, file) {
     .catch(err => console.error(`Error loading ${file}:`, err));
 }
 
-// Product swatch image update
+// ✅ Your original swatch image update function
 function updateProductImage(imgId, newSrc) {
   const imgElement = document.getElementById(imgId);
   if (imgElement) {
@@ -41,31 +41,63 @@ document.addEventListener("DOMContentLoaded", () => {
   const gallerySection = document.querySelector(".eight-gallery");
   const slots = document.querySelectorAll(".gallery-slot img");
 
-  if (!gallerySection) return;
+  if (gallerySection && slots.length) {
+    // Define slower cubic-bezier curves
+    const easings = [
+      "cubic-bezier(0.25, 0.1, 0.25, 1)",    // ease
+      "cubic-bezier(0.42, 0, 0.58, 1)",      // ease-in-out
+      "cubic-bezier(0.23, 1, 0.32, 1)",      // ease-out-quint
+      "cubic-bezier(0.64, 0, 0.78, 0)",      // ease-in-quint
+      "cubic-bezier(0.075, 0.82, 0.165, 1)", // ease-out-circ
+      "cubic-bezier(0.645, 0.045, 0.355, 1)",// ease-in-out-cubic
+      "cubic-bezier(0.445, 0.05, 0.55, 0.95)",// ease-in-out-sine
+      "cubic-bezier(1, 0, 0, 1)"             // ease-in-out-expo
+    ];
 
-  window.addEventListener("scroll", () => {
-    const rect = gallerySection.getBoundingClientRect();
-    const windowHeight = window.innerHeight;
-
-    // Progress: 0 at enter, 1 at center, back to 0 at exit
-    const centerOffset = Math.abs(rect.top + rect.height / 2 - windowHeight / 2);
-    const maxOffset = windowHeight / 2 + rect.height / 2;
-    const progress = 1 - Math.min(centerOffset / maxOffset, 1);
-
-    // Staggered zoom for images (row + column based)
-    slots.forEach((img, i) => {
-      const columns = 4;
-      const rowIndex = Math.floor(i / columns);
-      const colIndex = i % columns;
-
-      const rowDelay = rowIndex * 0.2;
-      const colDelay = colIndex * 0.1;
-      const totalDelay = rowDelay + colDelay;
-
-      const slotProgress = Math.min(1, Math.max(0, progress - totalDelay));
-      img.style.transform = `scale(${slotProgress})`;
+    // Assign random easing to each slot (fixed per page load)
+    slots.forEach(img => {
+      const easing = easings[Math.floor(Math.random() * easings.length)];
+      img.style.transition = `transform 2.8s ${easing}`;
     });
-  });
+
+    let ticking = false;
+
+    function computeProgress() {
+      const rect = gallerySection.getBoundingClientRect();
+      const windowHeight = window.innerHeight;
+
+      const centerOffset = Math.abs(rect.top + rect.height / 2 - windowHeight / 2);
+      const maxOffset = windowHeight / 2 + rect.height / 2;
+      return 1 - Math.min(centerOffset / maxOffset, 1);
+    }
+
+    function animateGallery() {
+      const progress = computeProgress();
+
+      slots.forEach((img, i) => {
+        const columns = 4;
+        const rowIndex = Math.floor(i / columns);
+        const colIndex = i % columns;
+
+        const rowDelay = rowIndex * 0.2;
+        const colDelay = colIndex * 0.1;
+        const totalDelay = rowDelay + colDelay;
+
+        const slotProgress = Math.min(1, Math.max(0, progress - totalDelay));
+        img.style.transform = `scale(${slotProgress})`; // all settle at scale(1)
+      });
+      ticking = false;
+    }
+
+    window.addEventListener("scroll", () => {
+      if (!ticking) {
+        ticking = true;
+        requestAnimationFrame(animateGallery);
+      }
+    }, { passive: true });
+
+    animateGallery(); // initial run
+  }
 
   // --- Title slide-in animation (scroll-triggered) ---
   const title = document.querySelector(".gallery-title");
