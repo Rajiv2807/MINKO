@@ -328,17 +328,17 @@ footer {
 .gallery-title.active .homes span:nth-child(2) { animation-delay: 1.5s; }
 .gallery-title.active .homes span:nth-child(1) { animation-delay: 2s; }
 
-/* Keyframes */
 @keyframes minkoSlide {
-  from { transform: translateX(-100px); opacity: 0; }
-  to   { transform: translateX(0); opacity: 1; }
+  0%   { transform: translateX(-100px) scale(0.8); opacity: 0; }
+  80%  { transform: translateX(5px) scale(1.1); opacity: 1; }
+  100% { transform: translateX(0) scale(1); opacity: 1; }
 }
 
 @keyframes homesSlide {
-  from { transform: translateX(100px); opacity: 0; }
-  to   { transform: translateX(0); opacity: 1; }
+  0%   { transform: translateX(100px) scale(0.8); opacity: 0; }
+  80%  { transform: translateX(-5px) scale(1.1); opacity: 1; }
+  100% { transform: translateX(0) scale(1); opacity: 1; }
 }
-
 /* Ensure grid is applied here */
 .gallery-grid {
   display: grid; /* force grid in case a prior rule sets flex */
