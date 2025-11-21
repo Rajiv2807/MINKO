@@ -348,9 +348,12 @@ footer {
 }
 
 .gallery-slot {
-  aspect-ratio: 4 / 3; /* consistent shape */
+  aspect-ratio: 4 / 3;         /* consistent shape across all slots */
+  width: 100%;
   overflow: hidden;
   position: relative;
+  border: 1px solid red;
+  background: #f8f8f8;         /* optional: placeholder background */
 }
 
 .gallery-slot img {
