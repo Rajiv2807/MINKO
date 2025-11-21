@@ -54,7 +54,12 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
   function animateGallery() {
-  const progress = computeProgress();
+  const rect = gallerySection.getBoundingClientRect();
+  const windowHeight = window.innerHeight;
+
+  const centerOffset = Math.abs(rect.top + rect.height / 2 - windowHeight / 2);
+  const maxOffset = windowHeight / 2 + rect.height / 2;
+  const progress = 1 - Math.min(centerOffset / maxOffset, 1);
 
   slots.forEach((img, i) => {
     const columns = 4;
@@ -65,13 +70,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const colDelay = colIndex * 0.1;
     const totalDelay = rowDelay + colDelay;
 
-    let slotProgress = progress - totalDelay;
-    slotProgress = Math.max(0, Math.min(1, slotProgress));
-
-    // ✅ Only update if scale is changing
-    const currentScale = parseFloat(img.style.transform?.match(/scale\(([^)]+)\)/)?.[1] || "0");
-    if (Math.abs(currentScale - slotProgress) > 0.001) {
-      img.style.transform = `scale(${slotProgress})`;
+    if (progress >= totalDelay) {
+      img.classList.add("scaled");
+    } else {
+      img.classList.remove("scaled"); // optional: replay on scroll out
     }
   });
 
