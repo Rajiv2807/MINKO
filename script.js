@@ -53,7 +53,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return 1 - Math.min(centerOffset / maxOffset, 1);
     }
 
-   function animateGallery() {
+  function animateGallery() {
   const progress = computeProgress();
 
   slots.forEach((img, i) => {
@@ -68,9 +68,8 @@ document.addEventListener("DOMContentLoaded", () => {
     let slotProgress = progress - totalDelay;
     slotProgress = Math.max(0, Math.min(1, slotProgress));
 
-    const currentScale = parseFloat(img.style.transform?.match(/scale\(([^)]+)\)/)?.[1] || "0");
-
     // ✅ Only update if scale is changing
+    const currentScale = parseFloat(img.style.transform?.match(/scale\(([^)]+)\)/)?.[1] || "0");
     if (Math.abs(currentScale - slotProgress) > 0.001) {
       img.style.transform = `scale(${slotProgress})`;
     }
@@ -78,6 +77,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   ticking = false;
 }
+
 
 
 
