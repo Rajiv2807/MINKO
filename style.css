@@ -292,18 +292,59 @@ footer {
 }
 
 .gallery-title {
-  text-align: center;
-  font-size: 4rem;
-  font-weight: 900;
-  margin-bottom: 2rem;
   display: flex;
   justify-content: center;
-  gap: 0.2rem;
+  gap: 1.5rem; /* space between Minko and Homes */
+  font-size: 2.5rem;
+  font-weight: bold;
+  text-transform: uppercase;
 }
 
 .gallery-title span {
-  color: white;
-  transition: color 1.5s ease;
+  display: inline-block;
+  opacity: 1; /* no fade, only movement */
+  transform: translateX(0);
+}
+
+/* Minko letters: slide in from left, starting from 'o' back to 'M' */
+.gallery-title .minko span {
+  transform: translateX(-100px);
+  opacity: 0;
+  animation: minkoSlide 0.6s ease-out forwards;
+}
+
+.gallery-title .minko span:nth-child(5) { animation-delay: 0s; }   /* o */
+.gallery-title .minko span:nth-child(4) { animation-delay: 0.1s; } /* k */
+.gallery-title .minko span:nth-child(3) { animation-delay: 0.2s; } /* n */
+.gallery-title .minko span:nth-child(2) { animation-delay: 0.3s; } /* i */
+.gallery-title .minko span:nth-child(1) { animation-delay: 0.4s; } /* M */
+
+/* Homes letters: slide in from right, starting from 's' back to 'H' */
+.gallery-title .homes span {
+  transform: translateX(100px);
+  opacity: 0;
+  animation: homesSlide 0.6s ease-out forwards;
+}
+
+.gallery-title .homes span:nth-child(5) { animation-delay: 0s; }   /* s */
+.gallery-title .homes span:nth-child(4) { animation-delay: 0.1s; } /* e */
+.gallery-title .homes span:nth-child(3) { animation-delay: 0.2s; } /* m */
+.gallery-title .homes span:nth-child(2) { animation-delay: 0.3s; } /* o */
+.gallery-title .homes span:nth-child(1) { animation-delay: 0.4s; } /* H */
+
+/* Keyframes */
+@keyframes minkoSlide {
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes homesSlide {
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
 }
 
 /* Ensure grid is applied here */
