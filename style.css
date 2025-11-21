@@ -303,6 +303,7 @@ footer {
 .gallery-title span {
   display: inline-block;
   opacity: 0;
+  color: black; /* fixed black text */
 }
 
 /* Active state triggered by JS */
