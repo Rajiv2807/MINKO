@@ -80,7 +80,7 @@ document.addEventListener("DOMContentLoaded", () => {
   ticking = false;
 }
 
-
+animateGallery(); // ✅ initial run
 
 
 
