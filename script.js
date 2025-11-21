@@ -42,13 +42,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const slots = document.querySelectorAll(".gallery-slot img");
 
   if (gallerySection && slots.length) {
-    // Use the same smooth cubic-bezier with bounceback for all slots
-    const easing = "cubic-bezier(0.68, -0.55, 0.27, 1.55)"; // smooth ease with overshoot
-
-    slots.forEach(img => {
-      img.style.transition = `transform 2.8s ${easing}`;
-    });
-
     let ticking = false;
 
     function computeProgress() {
@@ -74,7 +67,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         let slotProgress = progress - totalDelay;
         if (slotProgress < 0) slotProgress = 0;
-        if (slotProgress > 1) slotProgress = 1; // 🔑 force max size
+        if (slotProgress > 1) slotProgress = 1;
 
         img.style.transform = `scale(${slotProgress})`;
       });
@@ -100,7 +93,7 @@ document.addEventListener("DOMContentLoaded", () => {
           if (entry.isIntersecting) {
             title.classList.add("active");
           } else {
-            title.classList.remove("active"); // reset so it replays
+            title.classList.remove("active");
           }
         });
       },
