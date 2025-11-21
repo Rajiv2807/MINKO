@@ -65,25 +65,20 @@ document.addEventListener("DOMContentLoaded", () => {
     const colDelay = colIndex * 0.1;
     const totalDelay = rowDelay + colDelay;
 
-let slotProgress = progress - totalDelay;
-slotProgress = Math.max(0, Math.min(1, slotProgress));
-img.style.transform = `scale(${slotProgress})`;
-
-    
-   /* let slotProgress = progress - totalDelay;
-    if (slotProgress < 0) slotProgress = 0;
-    if (slotProgress > 1) slotProgress = 1;
+    let slotProgress = progress - totalDelay;
+    slotProgress = Math.max(0, Math.min(1, slotProgress));
 
     const currentScale = parseFloat(img.style.transform?.match(/scale\(([^)]+)\)/)?.[1] || "0");
 
     // ✅ Only update if scale is changing
     if (Math.abs(currentScale - slotProgress) > 0.001) {
       img.style.transform = `scale(${slotProgress})`;
-    }*/
+    }
   });
 
   ticking = false;
 }
+
 
 
     window.addEventListener("scroll", () => {
