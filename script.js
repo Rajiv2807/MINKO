@@ -54,25 +54,33 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function animateGallery() {
-      const progress = computeProgress();
+  const progress = computeProgress();
 
-      slots.forEach((img, i) => {
-        const columns = 4;
-        const rowIndex = Math.floor(i / columns);
-        const colIndex = i % columns;
+  const fullyVisible = progress >= 1;
 
-        const rowDelay = rowIndex * 0.2;
-        const colDelay = colIndex * 0.1;
-        const totalDelay = rowDelay + colDelay;
+  slots.forEach((img, i) => {
+    const columns = 4;
+    const rowIndex = Math.floor(i / columns);
+    const colIndex = i % columns;
 
-        let slotProgress = progress - totalDelay;
-        if (slotProgress < 0) slotProgress = 0;
-        if (slotProgress > 1) slotProgress = 1;
+    const rowDelay = rowIndex * 0.2;
+    const colDelay = colIndex * 0.1;
+    const totalDelay = rowDelay + colDelay;
 
-        img.style.transform = `scale(${slotProgress})`;
-      });
-      ticking = false;
+    let slotProgress = progress - totalDelay;
+
+    // ✅ Force scale(1) if gallery is fully visible
+    if (fullyVisible) {
+      slotProgress = 1;
+    } else {
+      slotProgress = Math.max(0, Math.min(1, slotProgress));
     }
+
+    img.style.transform = `scale(${slotProgress})`;
+  });
+
+  ticking = false;
+}
 
     window.addEventListener("scroll", () => {
       if (!ticking) {
