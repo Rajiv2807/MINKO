@@ -53,10 +53,8 @@ document.addEventListener("DOMContentLoaded", () => {
       return 1 - Math.min(centerOffset / maxOffset, 1);
     }
 
-    function animateGallery() {
+   function animateGallery() {
   const progress = computeProgress();
-
-  const fullyVisible = progress >= 1;
 
   slots.forEach((img, i) => {
     const columns = 4;
@@ -68,19 +66,20 @@ document.addEventListener("DOMContentLoaded", () => {
     const totalDelay = rowDelay + colDelay;
 
     let slotProgress = progress - totalDelay;
+    if (slotProgress < 0) slotProgress = 0;
+    if (slotProgress > 1) slotProgress = 1;
 
-    // ✅ Force scale(1) if gallery is fully visible
-    if (fullyVisible) {
-      slotProgress = 1;
-    } else {
-      slotProgress = Math.max(0, Math.min(1, slotProgress));
+    const currentScale = parseFloat(img.style.transform?.match(/scale\(([^)]+)\)/)?.[1] || "0");
+
+    // ✅ Only update if scale is changing
+    if (Math.abs(currentScale - slotProgress) > 0.001) {
+      img.style.transform = `scale(${slotProgress})`;
     }
-
-    img.style.transform = `scale(${slotProgress})`;
   });
 
   ticking = false;
 }
+
 
     window.addEventListener("scroll", () => {
       if (!ticking) {
