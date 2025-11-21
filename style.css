@@ -306,12 +306,18 @@ footer {
   color: black; /* fixed black text */
 }
 
-/* Active state triggered by JS */
+/* Active state triggered by JS 
 .gallery-title.active .minko span {
   animation: minkoSlide 0.6s ease-out forwards;
 }
 .gallery-title.active .homes span {
   animation: homesSlide 0.6s ease-out forwards;
+} */
+
+.gallery-title.active .minko span,
+.gallery-title.active .homes span {
+  opacity: 0; /* start hidden when animation begins */
+  animation-fill-mode: forwards;
 }
 
 /* Delays for Minko (O → M) */
