@@ -9,7 +9,7 @@ function loadSharedPart(id, file) {
     .catch(err => console.error(`Error loading ${file}:`, err));
 }
 
-// ✅ Original swatch image update function
+// ✅ Swatch image update function
 function updateProductImage(imgId, newSrc) {
   const imgElement = document.getElementById(imgId);
   if (imgElement) {
@@ -37,61 +37,29 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // --- Eight-slot scroll-driven gallery ---
-  const gallerySection = document.querySelector(".eight-gallery");
+  // --- Eight-slot gallery animation using IntersectionObserver ---
   const slots = document.querySelectorAll(".gallery-slot img");
 
-  if (gallerySection && slots.length) {
-    let ticking = false;
+  if (slots.length) {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add("scaled");
+        } else {
+          entry.target.classList.remove("scaled"); // optional: replay when scrolled out
+        }
+      });
+    }, { threshold: 0.3 });
 
-    function computeProgress() {
-      const rect = gallerySection.getBoundingClientRect();
-      const windowHeight = window.innerHeight;
+    slots.forEach((img, i) => {
+      // Optional staggered delay per slot
+      const rowIndex = Math.floor(i / 4);
+      const colIndex = i % 4;
+      const delay = rowIndex * 0.2 + colIndex * 0.1;
+      img.style.setProperty("--delay", `${delay}s`);
 
-      const centerOffset = Math.abs(rect.top + rect.height / 2 - windowHeight / 2);
-      const maxOffset = windowHeight / 2 + rect.height / 2;
-      return 1 - Math.min(centerOffset / maxOffset, 1);
-    }
-
-  function animateGallery() {
-  const rect = gallerySection.getBoundingClientRect();
-  const windowHeight = window.innerHeight;
-
-  const centerOffset = Math.abs(rect.top + rect.height / 2 - windowHeight / 2);
-  const maxOffset = windowHeight / 2 + rect.height / 2;
-  const progress = 1 - Math.min(centerOffset / maxOffset, 1);
-
-  slots.forEach((img, i) => {
-    const columns = 4;
-    const rowIndex = Math.floor(i / columns);
-    const colIndex = i % columns;
-
-    const rowDelay = rowIndex * 0.2;
-    const colDelay = colIndex * 0.1;
-    const totalDelay = rowDelay + colDelay;
-
-    if (progress >= totalDelay) {
-      img.classList.add("scaled");
-    } else {
-      img.classList.remove("scaled"); // optional: replay on scroll out
-    }
-  });
-
-  ticking = false;
-}
-
-animateGallery(); // ✅ initial run
-
-
-
-    window.addEventListener("scroll", () => {
-      if (!ticking) {
-        ticking = true;
-        requestAnimationFrame(animateGallery);
-      }
-    }, { passive: true });
-
-    animateGallery(); // initial run
+      observer.observe(img);
+    });
   }
 
   // --- Title slide-in animation (scroll-triggered) ---
@@ -103,7 +71,7 @@ animateGallery(); // ✅ initial run
           if (entry.isIntersecting) {
             title.classList.add("active");
           } else {
-            title.classList.remove("active");
+            title.classList.remove("active"); // reset so it replays
           }
         });
       },
