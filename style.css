@@ -12,11 +12,26 @@ body {
   line-height: 1.6;
 }
 
+.chair-slot {
+  padding: 4rem 0;
+  text-align: center;
+  background: #fafafa;
+}
+
+.chair-title {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
 #chair-canvas {
   width: 100%;
-  height: 500px;   /* or any fixed height */
-  background: #f0f0f0; /* optional, helps confirm canvas is visible */
+  max-width: 600px;
+  height: 400px;
+  margin: 0 auto;
+  background: #f0f0f0; /* optional placeholder */
 }
+
+
 /* Header & Navigation */
 header {
   background: #fff;
