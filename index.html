@@ -85,6 +85,13 @@
   }
 });
 
+// ✅ Reset to forward-facing when cursor leaves
+container.addEventListener("mouseleave", () => {
+  if (chair) {
+    chair.rotation.set(0, 0, 0); // reset X, Y, Z rotations
+  }
+});
+      
       // Render loop
       function animate() {
         requestAnimationFrame(animate);
