@@ -89,17 +89,19 @@
 // ✅ Reset to forward-facing when cursor leaves
 container.addEventListener("mouseleave", () => {
   if (chair) {
-    const targetRotationY = Math.PI;
+    const targetRotationY = Math.PI; // forward-facing
     const targetRotationX = 0;
 
-    // simple easing loop
     const reset = () => {
       if (!chair) return;
-      chair.rotation.y += (targetRotationY - chair.rotation.y) * 0.1;
-      chair.rotation.x += (targetRotationX - chair.rotation.x) * 0.1;
 
-      if (Math.abs(chair.rotation.y - targetRotationY) > 0.01 ||
-          Math.abs(chair.rotation.x - targetRotationX) > 0.01) {
+      // smaller easing factor = smoother glide
+      chair.rotation.y += (targetRotationY - chair.rotation.y) * 0.05;
+      chair.rotation.x += (targetRotationX - chair.rotation.x) * 0.05;
+
+      // keep looping until close enough
+      if (Math.abs(chair.rotation.y - targetRotationY) > 0.001 ||
+          Math.abs(chair.rotation.x - targetRotationX) > 0.001) {
         requestAnimationFrame(reset);
       } else {
         chair.rotation.set(targetRotationX, targetRotationY, 0);
@@ -108,6 +110,7 @@ container.addEventListener("mouseleave", () => {
     reset();
   }
 });
+
       
       // Render loop
       function animate() {
