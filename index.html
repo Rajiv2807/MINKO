@@ -70,12 +70,20 @@
 
       // Rotate on hover
       container.addEventListener("mousemove", (e) => {
-        if (chair) {
-          const rect = container.getBoundingClientRect();
-          const progress = (e.clientX - rect.left) / rect.width;
-          chair.rotation.y = progress * Math.PI * 2;
-        }
-      });
+  if (chair) {
+    const rect = container.getBoundingClientRect();
+
+    // Normalize cursor position inside the canvas
+    const progressX = (e.clientX - rect.left) / rect.width;   // 0 → 1
+    const progressY = (e.clientY - rect.top) / rect.height;   // 0 → 1
+
+    // Sideways rotation (Y axis)
+    chair.rotation.y = (progressX - 0.5) * Math.PI; // -180° to +180°
+
+    // Forward/back tilt (X axis)
+    chair.rotation.x = (progressY - 0.5) * Math.PI; // -180° to +180°
+  }
+});
 
       // Render loop
       function animate() {
