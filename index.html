@@ -9,14 +9,11 @@
   <!-- Snipcart CSS/JS -->
   <link rel="stylesheet" href="https://cdn.snipcart.com/themes/v3.0.31/default/snipcart.css" />
   <script async src="https://cdn.snipcart.com/themes/v3.0.31/default/snipcart.js"></script>
-
-
-  
-  <div hidden id="snipcart" data-api-key="OWRkYTk0NGQtMGFhZS00OGMwLWE1ZjctNzgyMGM3NmUzODNlNjM4OTg2NDkwODAzODYyNzUx"></div>
-
-  <script src="script.js" defer></script>
 </head>
 <body>
+  <!-- ✅ Snipcart div must be inside body -->
+  <div hidden id="snipcart" data-api-key="YOUR_API_KEY"></div>
+
   <div id="site-header"></div>
 
   <main>
@@ -26,68 +23,68 @@
       <a href="products.html" class="btn">Shop Now</a>
     </section>
 
+    <!-- Chair slot -->
     <section class="chair-slot">
-  <h2 class="chair-title">Featured Chair</h2>
-  <div id="chair-canvas"></div>
-</section>
+      <h2 class="chair-title">Featured Chair</h2>
+      <div id="chair-canvas"></div>
+    </section>
 
+    <!-- ✅ ES module script -->
     <script type="module">
-  import * as THREE from 'https://unpkg.com/three@0.126.1/build/three.module.js';
-  import { OrbitControls } from 'https://unpkg.com/three@0.126.1/examples/jsm/controls/OrbitControls.js';
-  import { GLTFLoader } from 'https://unpkg.com/three@0.126.1/examples/jsm/loaders/GLTFLoader.js';
-      
-  const container = document.getElementById("chair-canvas");
+      import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
+      import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js";
 
-  const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
-  camera.position.set(0, 1, 5);
+      const container = document.getElementById("chair-canvas");
 
-  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-  renderer.setSize(container.clientWidth, container.clientHeight);
-  container.appendChild(renderer.domElement);
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+      camera.position.set(0, 1, 5);
 
-  // Lighting
-  const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
-  scene.add(hemiLight);
-  const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-  dirLight.position.set(2, 2, 2);
-  scene.add(dirLight);
+      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setSize(container.clientWidth, container.clientHeight);
+      container.appendChild(renderer.domElement);
 
-  // Load chair model
-  const loader = new GLTFLoader();
-  let chair;
-  loader.load("models/chair.glb", (gltf) => {
-    chair = gltf.scene;
-    chair.scale.set(1, 1, 1);
-    scene.add(chair);
-  }, undefined, (error) => {
-    console.error("Error loading chair:", error);
-  });
+      // Lighting
+      const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
+      scene.add(hemiLight);
+      const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+      dirLight.position.set(2, 2, 2);
+      scene.add(dirLight);
 
-  // Rotate on hover
-  container.addEventListener("mousemove", (e) => {
-    if (chair) {
-      const rect = container.getBoundingClientRect();
-      const progress = (e.clientX - rect.left) / rect.width;
-      chair.rotation.y = progress * Math.PI * 2;
-    }
-  });
+      // Load chair model
+      const loader = new GLTFLoader();
+      let chair;
+      loader.load("models/chair.glb", (gltf) => {
+        chair = gltf.scene;
+        chair.scale.set(1, 1, 1);
+        scene.add(chair);
+      }, undefined, (error) => {
+        console.error("Error loading chair:", error);
+      });
 
-  // Render loop
-  function animate() {
-    requestAnimationFrame(animate);
-    renderer.render(scene, camera);
-  }
-  animate();
+      // Rotate on hover
+      container.addEventListener("mousemove", (e) => {
+        if (chair) {
+          const rect = container.getBoundingClientRect();
+          const progress = (e.clientX - rect.left) / rect.width;
+          chair.rotation.y = progress * Math.PI * 2;
+        }
+      });
 
-  // Resize handling
-  window.addEventListener("resize", () => {
-    camera.aspect = container.clientWidth / container.clientHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(container.clientWidth, container.clientHeight);
-  });
-</script>
+      // Render loop
+      function animate() {
+        requestAnimationFrame(animate);
+        renderer.render(scene, camera);
+      }
+      animate();
 
+      // Resize handling
+      window.addEventListener("resize", () => {
+        camera.aspect = container.clientWidth / container.clientHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(container.clientWidth, container.clientHeight);
+      });
+    </script>
   </main>
 
   <div id="site-footer"></div>
