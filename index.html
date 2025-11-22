@@ -78,10 +78,10 @@
     const progressY = (e.clientY - rect.top) / rect.height;   // 0 → 1
 
     // Sideways rotation (Y axis)
-    chair.rotation.y = (progressX - 0.5) * Math.PI; // -180° to +180°
+    chair.rotation.y = (progressX - 0.5) * Math.PI * 2; // -180° to +180°
 
     // Forward/back tilt (X axis)
-    chair.rotation.x = (progressY - 0.5) * Math.PI; // -180° to +180°
+    chair.rotation.x = (progressY - 0.5) * Math.PI * 2; // -180° to +180°
   }
 });
 
