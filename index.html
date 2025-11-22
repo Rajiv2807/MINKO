@@ -63,6 +63,7 @@
       loader.load("models/chair.glb", (gltf) => {
         chair = gltf.scene;
         chair.scale.set(1, 1, 1);
+        chair.rotation.set(0, Math.PI, 0);
         scene.add(chair);
       }, undefined, (error) => {
         console.error("Error loading chair:", error);
@@ -88,7 +89,7 @@
 // ✅ Reset to forward-facing when cursor leaves
 container.addEventListener("mouseleave", () => {
   if (chair) {
-    chair.rotation.set(0, 0, 0); // reset X, Y, Z rotations
+    chair.rotation.set(0, Math.PI, 0); // reset X, Y, Z rotations
   }
 });
       
