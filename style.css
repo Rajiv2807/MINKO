@@ -368,6 +368,29 @@ footer {
   transform: scale(1);
 }
 
+.home-product {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 4rem 0;
+  background: #f9f9f9;
+}
+
+.product {
+  perspective: 1000px; /* adds depth for 3D rotation */
+}
+
+.product img {
+  width: 300px;
+  height: auto;
+  transform: rotateY(0deg);
+  transition: transform 1.5s ease-in-out;
+  cursor: pointer;
+}
+
+.product img:hover {
+  transform: rotateY(360deg); /* full spin on hover */
+}
 
 
 /* Responsive */
