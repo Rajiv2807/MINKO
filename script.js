@@ -17,7 +17,7 @@ function updateProductImage(imgId, newSrc) {
   }
 }
 
-document.addEventListener("DOMContentLoaded", () => {
+/*document.addEventListener("DOMContentLoaded", () => {
   const container = document.getElementById("chair-canvas");
 
   // Scene setup
@@ -74,7 +74,7 @@ document.addEventListener("DOMContentLoaded", () => {
     renderer.setSize(container.clientWidth, container.clientHeight);
   });
 });
-
+*/
 
 
 document.addEventListener("DOMContentLoaded", () => {
