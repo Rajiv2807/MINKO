@@ -89,7 +89,23 @@
 // ✅ Reset to forward-facing when cursor leaves
 container.addEventListener("mouseleave", () => {
   if (chair) {
-    chair.rotation.set(0, Math.PI, 0); // reset X, Y, Z rotations
+    const targetRotationY = Math.PI;
+    const targetRotationX = 0;
+
+    // simple easing loop
+    const reset = () => {
+      if (!chair) return;
+      chair.rotation.y += (targetRotationY - chair.rotation.y) * 0.1;
+      chair.rotation.x += (targetRotationX - chair.rotation.x) * 0.1;
+
+      if (Math.abs(chair.rotation.y - targetRotationY) > 0.01 ||
+          Math.abs(chair.rotation.x - targetRotationX) > 0.01) {
+        requestAnimationFrame(reset);
+      } else {
+        chair.rotation.set(targetRotationX, targetRotationY, 0);
+      }
+    };
+    reset();
   }
 });
       
