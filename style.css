@@ -12,6 +12,11 @@ body {
   line-height: 1.6;
 }
 
+#chair-canvas {
+  width: 100%;
+  height: 500px;   /* or any fixed height */
+  background: #f0f0f0; /* optional, helps confirm canvas is visible */
+}
 /* Header & Navigation */
 header {
   background: #fff;
