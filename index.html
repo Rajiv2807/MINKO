@@ -42,12 +42,14 @@
 
       const scene = new THREE.Scene();
       const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
-      camera.position.set(0, 1, 5);
+      camera.position.set(0, 1.5, 6);
 
       const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
       renderer.setSize(container.clientWidth, container.clientHeight);
       container.appendChild(renderer.domElement);
 
+      const clock = new THREE.Clock();
+      
       // Lighting
       const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
       scene.add(hemiLight);
@@ -78,6 +80,11 @@
       // Render loop
       function animate() {
         requestAnimationFrame(animate);
+        
+        if (chair) {
+    const t = clock.getElapsedTime();
+    chair.position.y = Math.sin(t) * 0.1; // gentle up/down float
+  }
         renderer.render(scene, camera);
       }
       animate();
