@@ -143,9 +143,12 @@ loader.load('models/chair.glb', (gltf) => {
   const z = Math.max(5.5, size.y * fovFactor);
   const camY = visualLift + (size.y * 0.30);
   //camera.position.set(center.x, camY, z);
-  camera.position.set(center.x, visualLift * 0.98 + modelSize.y * 0.30, 6);
+  //camera.position.set(center.x, visualLift * 0.98 + modelSize.y * 0.30, 6);
+  //camera.lookAt(0, visualLift, 0);
+  camera.position.set(center.x, visualLift + modelSize.y * 0.40, 6); // more headroom
   camera.lookAt(0, visualLift, 0);
 
+  
   // expose for animate loop and debugging
   window._pivotGroup = pivotGroup;
   window._modelRef = model;
