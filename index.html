@@ -112,7 +112,8 @@ loader.load('models/chair.glb', (gltf) => {
   // world target center we want inside the canvas: roughly 0.6 * slotHeight in world units — we compute by mapping size
   // A robust default: lift by half the model height plus a small offset so backrest gets headroom
   const visualLift = modelSize.y * 0.5 + (modelSize.y * 0.15); // 50% + 15% headroom
-  pivotGroup.position.y = visualLift;
+  //pivotGroup.position.y = visualLift;
+pivotGroup.position.y = visualLift * 0.9; // gently lower the lift
 
   // enable shadows on all meshes
   model.traverse((n) => {
