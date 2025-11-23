@@ -49,6 +49,9 @@
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   container.appendChild(renderer.domElement);
 
+const helper = new THREE.AxesHelper(1);
+scene.add(helper);
+    
   // Lighting
   const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.8);
   scene.add(hemiLight);
