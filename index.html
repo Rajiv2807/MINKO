@@ -113,7 +113,8 @@ loader.load('models/chair.glb', (gltf) => {
   // A robust default: lift by half the model height plus a small offset so backrest gets headroom
   const visualLift = modelSize.y * 0.5 + (modelSize.y * 0.15); // 50% + 15% headroom
   //pivotGroup.position.y = visualLift;
-pivotGroup.position.y = visualLift * 0.9; // gently lower the lift
+//pivotGroup.position.y = visualLift * 0.9; // gently lower the lift
+pivotGroup.position.y = visualLift * 1.05; // small upward nudge
 
   // enable shadows on all meshes
   model.traverse((n) => {
