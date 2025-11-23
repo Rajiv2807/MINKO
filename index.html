@@ -81,11 +81,16 @@
     // Compute bounding box center
     const box = new THREE.Box3().setFromObject(model);
     const center = box.getCenter(new THREE.Vector3());
+    const size = box.getSize(new THREE.Vector3());
+    
     model.position.sub(center);
     // Wrap in pivot group
     const pivot = new THREE.Group();
     pivot.add(model);
 
+    // Lift pivot so visual center aligns with canvas center
+    pivot.position.y = size.y / 2 - center.y;
+    
     // Enable shadows
     model.traverse((node) => {
       if (node.isMesh) {
@@ -94,7 +99,7 @@
       }
     });
 
-    pivot.position.y = 0.5; // lift the whole chair upward
+    //pivot.position.y = 0.5; // lift the whole chair upward
     scene.add(pivot);
     
     chair = pivot;
