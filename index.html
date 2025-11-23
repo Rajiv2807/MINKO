@@ -33,7 +33,7 @@
     </section>
 
     <!-- ✅ ES module script for Three.js -->
-    <script type="module">
+  <script type="module">
   import * as THREE from 'https://unpkg.com/three@0.126.1/build/three.module.js';
   import { GLTFLoader } from 'https://unpkg.com/three@0.126.1/examples/jsm/loaders/GLTFLoader.js';
 
@@ -90,14 +90,14 @@
   // Floating animation clock
   const clock = new THREE.Clock();
 
-  // Render loop
+  // Render loop with ease-out interpolation
   function animate() {
     requestAnimationFrame(animate);
 
     if (chair) {
-      // Smoothly ease toward target rotations
-      chair.rotation.x += (targetRotationX - chair.rotation.x) * 0.05;
-      chair.rotation.y += (targetRotationY - chair.rotation.y) * 0.05;
+      // Ease-out interpolation: slows as it approaches target
+      chair.rotation.x += (targetRotationX - chair.rotation.x) * 0.08;
+      chair.rotation.y += (targetRotationY - chair.rotation.y) * 0.08;
 
       // Gentle float
       const t = clock.getElapsedTime();
@@ -115,6 +115,7 @@
     renderer.setSize(container.clientWidth, container.clientHeight);
   });
 </script>
+
 
     
     
