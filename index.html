@@ -113,12 +113,13 @@ loader.load('models/chair.glb', (gltf) => {
   pivotGroup.add(model);
 
   // Deterministic visual lift: use a multiplier based on model height
-  // 0.65 gives good headroom for tall backrests without overshoot
-  const visualLift = modelSize.y * 0.65; // tuned for your model
+  // base = 0.65 * height, then gently lower by 2% to correct perceived low placement
+  const baseVisualLift = modelSize.y * 0.65; // ≈ 2.2977 for your model
+  const visualLift = baseVisualLift * 0.98;  // gently lower 2% (≈ 2.2517)
   pivotGroup.position.set(0, visualLift, 0);
 
-  // Reduce float amplitude: 1% of model height for a subtle effect
-  const floatAmplitude = modelSize.y * 0.01;
+  // Reduced float amplitude: 0.75% of model height for subtle effect
+  const floatAmplitude = modelSize.y * 0.0075; // ≈ 0.0265
 
   // Enable shadows on all meshes
   model.traverse((n) => {
@@ -131,8 +132,8 @@ loader.load('models/chair.glb', (gltf) => {
 
   scene.add(pivotGroup);
 
-  // Frame camera to the visual center with a little extra headroom
-  camera.position.set(center.x, visualLift + modelSize.y * 0.35, 6);
+  // Frame camera to the visual center with slightly less headroom
+  camera.position.set(center.x, visualLift + modelSize.y * 0.30, 6);
   camera.lookAt(0, visualLift, 0);
 
   // Expose small references for animate loop
@@ -141,8 +142,13 @@ loader.load('models/chair.glb', (gltf) => {
   window._modelSize = modelSize;
   window._floatAmp = floatAmplitude;
 
-  // Optional debug logs (comment out when done)
+  // Debug helpers (kept as requested)
   console.log('box min', box.min, 'box max', box.max, 'size', modelSize, 'center', center, 'visualLift', visualLift, 'floatAmp', floatAmplitude);
+  const frame = new THREE.BoxHelper(new THREE.Mesh(new THREE.PlaneGeometry(4, 4)), 0xff9900);
+  scene.add(frame);
+  const dot = new THREE.Mesh(new THREE.SphereGeometry(0.02), new THREE.MeshBasicMaterial({color:0xff9900}));
+  dot.position.set(0, visualLift, 0);
+  scene.add(dot);
 
 }, undefined, (err) => {
   console.error('GLTF load error', err);
@@ -188,7 +194,7 @@ function animate() {
     const t = clock.getElapsedTime();
     const model = pivot.children[0];
     if (model) {
-      model.position.y = Math.sin(t * 1.6) * (window._floatAmp || (modelSize.y * 0.01));
+      model.position.y = Math.sin(t * 1.6) * (window._floatAmp || (modelSize.y * 0.0075));
     }
   }
 
