@@ -92,20 +92,24 @@
 
   // Render loop with ease-out interpolation
   function animate() {
-    requestAnimationFrame(animate);
+  requestAnimationFrame(animate);
 
-    if (chair) {
-      // Ease-out interpolation: slows as it approaches target
-      chair.rotation.x += (targetRotationX - chair.rotation.x) * 0.08;
-      chair.rotation.y += (targetRotationY - chair.rotation.y) * 0.08;
+  if (chair) {
+    // Normalize Y rotation difference to avoid full spin
+    let deltaY = targetRotationY - chair.rotation.y;
+    deltaY = ((deltaY + Math.PI) % (2 * Math.PI)) - Math.PI; 
 
-      // Gentle float
-      const t = clock.getElapsedTime();
-      chair.position.y = Math.sin(t * 2) * 0.1;
-    }
+    chair.rotation.y += deltaY * 0.08; // ease-out toward target
+    chair.rotation.x += (targetRotationX - chair.rotation.x) * 0.08;
 
-    renderer.render(scene, camera);
+    // Gentle float
+    const t = clock.getElapsedTime();
+    chair.position.y = Math.sin(t * 2) * 0.1;
   }
+
+  renderer.render(scene, camera);
+}
+
   animate();
 
   // Resize handling
