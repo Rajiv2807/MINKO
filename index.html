@@ -82,7 +82,6 @@
     const box = new THREE.Box3().setFromObject(model);
     const center = box.getCenter(new THREE.Vector3());
     model.position.sub(center);
-    pivot.position.y = 0.5; // lift the whole chair upward
     // Wrap in pivot group
     const pivot = new THREE.Group();
     pivot.add(model);
@@ -96,6 +95,7 @@
     });
 
     scene.add(pivot);
+    pivot.position.y = 0.5; // lift the whole chair upward
     chair = pivot;
   }, undefined, (error) => {
     console.error("Error loading chair:", error);
