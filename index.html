@@ -33,144 +33,158 @@
     </section>
 
     <!-- ✅ ES module script for Three.js -->
-  <script type="module">
-  import * as THREE from 'https://unpkg.com/three@0.126.1/build/three.module.js';
-  import { GLTFLoader } from 'https://unpkg.com/three@0.126.1/examples/jsm/loaders/GLTFLoader.js';
+ <script type="module">
+import * as THREE from 'https://unpkg.com/three@0.126.1/build/three.module.js';
+import { GLTFLoader } from 'https://unpkg.com/three@0.126.1/examples/jsm/loaders/GLTFLoader.js';
 
-  const container = document.getElementById("chair-canvas");
+const container = document.getElementById('chair-canvas');
 
-  const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
-  camera.position.set(0, 1.5, 6);
+// Scene + camera
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
+camera.position.set(0, 2.2, 6); // start with a slightly higher camera
 
-  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-  renderer.setSize(container.clientWidth, container.clientHeight);
-  renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-  container.appendChild(renderer.domElement);
+// Renderer
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.domElement.style.display = 'block';
+container.appendChild(renderer.domElement);
 
-const helper = new THREE.AxesHelper(1);
-scene.add(helper);
-const frame = new THREE.BoxHelper(new THREE.Mesh(new THREE.PlaneGeometry(4, 4)), 0xff9900);
-scene.add(frame);
-    
-
-    
-  // Lighting
-  const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.8);
-  scene.add(hemiLight);
-
-  const dirLight = new THREE.DirectionalLight(0xffffff, 1);
-  dirLight.position.set(3, 5, 5);
-  dirLight.castShadow = true;
-  dirLight.shadow.mapSize.width = 1024;
-  dirLight.shadow.mapSize.height = 1024;
-  dirLight.shadow.camera.near = 0.5;
-  dirLight.shadow.camera.far = 20;
-  scene.add(dirLight);
-
-  // Ground plane for shadows
-  const groundGeo = new THREE.PlaneGeometry(20, 20);
-  const groundMat = new THREE.ShadowMaterial({ opacity: 0.3 });
-  const ground = new THREE.Mesh(groundGeo, groundMat);
-  ground.rotation.x = -Math.PI / 2;
-  ground.position.y = -0.5;
-  ground.receiveShadow = true;
-  scene.add(ground);
-
-  // Load chair model and recenter pivot
-  const loader = new GLTFLoader();
-  let chair;
-  loader.load("models/chair.glb", (gltf) => {
-    const model = gltf.scene;
-    model.scale.set(1, 1, 1);
-
-    // Compute bounding box center
-    const box = new THREE.Box3().setFromObject(model);
-    const center = box.getCenter(new THREE.Vector3());
-    const size = box.getSize(new THREE.Vector3());
-    
-    model.position.sub(center);
-    // Wrap in pivot group
-    const pivot = new THREE.Group();
-    pivot.add(model);
-
-    // Lift pivot so visual center aligns with canvas center
-    //pivot.position.y = size.y / 2 - center.y;
-   pivot.position.y += 0.5; // lift the whole chair group
-    // pivot.position.y = 1.2; 
-    // Enable shadows
-    model.traverse((node) => {
-      if (node.isMesh) {
-        node.castShadow = true;
-        node.receiveShadow = true;
-      }
-    });
-
-    //pivot.position.y = 0.5; // lift the whole chair upward
-    scene.add(pivot);
-    
-    chair = pivot;
-  }, undefined, (error) => {
-    console.error("Error loading chair:", error);
-  });
-
-  // Target rotations
-  let targetRotationX = 0;
-  let targetRotationY = Math.PI; // showroom forward-facing
-
-  // Cursor interaction
-  container.addEventListener("mousemove", (e) => {
-    if (chair) {
-      const rect = container.getBoundingClientRect();
-      const progressX = (e.clientX - rect.left) / rect.width;
-      const progressY = (e.clientY - rect.top) / rect.height;
-
-      targetRotationY = (progressX - 0.5) * Math.PI * 2;       // sideways spin
-      targetRotationX = (progressY - 0.5) * (Math.PI / 2);     // tilt limited to ±45°
-    }
-  });
-
-  // Reset smoothly when cursor leaves
-  container.addEventListener("mouseleave", () => {
-    targetRotationX = 0;
-    targetRotationY = Math.PI; // showroom pose
-  });
-
-  // Floating animation clock
-  const clock = new THREE.Clock();
-
-  // Render loop with ease-out interpolation
-  function animate() {
-    requestAnimationFrame(animate);
-
-    if (chair) {
-      // Normalize Y rotation difference to avoid sudden spins
-      let deltaY = targetRotationY - chair.rotation.y;
-      deltaY = ((deltaY + Math.PI) % (2 * Math.PI)) - Math.PI;
-
-      // Ease-out interpolation
-      chair.rotation.y += deltaY * 0.08;
-      chair.rotation.x += (targetRotationX - chair.rotation.x) * 0.08;
-
-      // Gentle float
-      const t = clock.getElapsedTime();
-      chair.position.y = Math.sin(t * 2) * 0.1;
-    }
-
-    renderer.render(scene, camera);
-  }
-  animate();
-
-  // Resize handling
-  window.addEventListener("resize", () => {
-    camera.aspect = container.clientWidth / container.clientHeight;
+// Ensure renderer size matches container
+function resizeRendererToContainer() {
+  const w = Math.max(1, container.clientWidth);
+  const h = Math.max(1, container.clientHeight);
+  if (renderer.domElement.width !== Math.floor(w * renderer.getPixelRatio()) ||
+      renderer.domElement.height !== Math.floor(h * renderer.getPixelRatio())) {
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h;
     camera.updateProjectionMatrix();
-    renderer.setSize(container.clientWidth, container.clientHeight);
+  }
+}
+resizeRendererToContainer();
+
+// Lights
+const hemi = new THREE.HemisphereLight(0xffffff, 0x444444, 0.8);
+scene.add(hemi);
+
+const dir = new THREE.DirectionalLight(0xffffff, 1.0);
+dir.position.set(3, 5, 5);
+dir.castShadow = true;
+dir.shadow.mapSize.width = 1024;
+dir.shadow.mapSize.height = 1024;
+dir.shadow.camera.near = 0.5;
+dir.shadow.camera.far = 20;
+scene.add(dir);
+
+// Ground shadow catcher
+const groundGeo = new THREE.PlaneGeometry(20, 20);
+const groundMat = new THREE.ShadowMaterial({ opacity: 0.28 });
+const ground = new THREE.Mesh(groundGeo, groundMat);
+ground.rotation.x = -Math.PI / 2;
+ground.position.y = -0.5;
+ground.receiveShadow = true;
+scene.add(ground);
+
+// Load model, compute real visual pivot, then frame camera to it
+const loader = new GLTFLoader();
+let pivotGroup = null;
+let modelSize = new THREE.Vector3();
+
+loader.load('models/chair.glb', (gltf) => {
+  const model = gltf.scene;
+  model.scale.set(1, 1, 1);
+
+  // compute bounding box of the visible geometry
+  const box = new THREE.Box3().setFromObject(model);
+  box.getSize(modelSize);
+  const center = box.getCenter(new THREE.Vector3());
+
+  // shift model so its bounding-box center is at origin
+  model.position.sub(center);
+
+  // create pivot group and add model
+  pivotGroup = new THREE.Group();
+  pivotGroup.add(model);
+
+  // Deterministic visual lift: move pivot so the vertical midpoint of the bounding box aligns with world y = 0.0
+  // world target center we want inside the canvas: roughly 0.6 * slotHeight in world units — we compute by mapping size
+  // A robust default: lift by half the model height plus a small offset so backrest gets headroom
+  const visualLift = modelSize.y * 0.5 + (modelSize.y * 0.15); // 50% + 15% headroom
+  pivotGroup.position.y = visualLift;
+
+  // enable shadows on all meshes
+  model.traverse((n) => {
+    if (n.isMesh) {
+      n.castShadow = true;
+      n.receiveShadow = true;
+      n.material.needsUpdate = true;
+    }
   });
+
+  scene.add(pivotGroup);
+
+  // Frame the camera to look at the pivot group's visual center
+  camera.lookAt(new THREE.Vector3(0, pivotGroup.position.y, 0));
+
+}, undefined, (err) => {
+  console.error('GLTF load error', err);
+});
+
+// Interaction targets
+let targetRotationX = 0;
+let targetRotationY = Math.PI;
+
+// Pointer interaction (guard for container bounds)
+container.addEventListener('mousemove', (e) => {
+  if (!pivotGroup) return;
+  const rect = container.getBoundingClientRect();
+  const px = (e.clientX - rect.left) / rect.width;
+  const py = (e.clientY - rect.top) / rect.height;
+  targetRotationY = (px - 0.5) * Math.PI * 2;
+  targetRotationX = (py - 0.5) * (Math.PI / 2);
+});
+
+container.addEventListener('mouseleave', () => {
+  targetRotationX = 0;
+  targetRotationY = Math.PI;
+});
+
+// Clock + animation
+const clock = new THREE.Clock();
+
+function animate() {
+  requestAnimationFrame(animate);
+
+  // keep renderer sized to container (handles layout shifts)
+  resizeRendererToContainer();
+
+  if (pivotGroup) {
+    // normalize delta for Y to avoid long spins
+    let deltaY = targetRotationY - pivotGroup.rotation.y;
+    deltaY = ((deltaY + Math.PI) % (2 * Math.PI)) - Math.PI;
+    pivotGroup.rotation.y += deltaY * 0.08;
+    pivotGroup.rotation.x += (targetRotationX - pivotGroup.rotation.x) * 0.08;
+
+    // subtle float applied to the MODEL inside the pivot (not the pivot) so the pivot stays centered
+    const t = clock.getElapsedTime();
+    // locate the child model and move only that model vertically
+    if (pivotGroup.children[0]) {
+      pivotGroup.children[0].position.y = Math.sin(t * 1.8) * (modelSize.y * 0.01); // 1% of height
+    }
+  }
+
+  renderer.render(scene, camera);
+}
+animate();
+
+// Resize observer fallback for responsive layouts
+window.addEventListener('resize', () => {
+  resizeRendererToContainer();
+});
 </script>
 
-    
     
     
   </main>
