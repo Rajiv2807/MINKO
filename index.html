@@ -45,8 +45,8 @@
 
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
   renderer.setSize(container.clientWidth, container.clientHeight);
-  renderer.shadowMap.enabled = true;                 // enable shadows
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;  // soft shadow edges
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   container.appendChild(renderer.domElement);
 
   // Lighting
@@ -62,30 +62,41 @@
   dirLight.shadow.camera.far = 20;
   scene.add(dirLight);
 
-  // Ground plane to catch shadows
+  // Ground plane for shadows
   const groundGeo = new THREE.PlaneGeometry(20, 20);
   const groundMat = new THREE.ShadowMaterial({ opacity: 0.3 });
   const ground = new THREE.Mesh(groundGeo, groundMat);
   ground.rotation.x = -Math.PI / 2;
-  ground.position.y = -0.5; // adjust under chair
+  ground.position.y = -0.5;
   ground.receiveShadow = true;
   scene.add(ground);
 
-  // Load chair model
+  // Load chair model and recenter pivot
   const loader = new GLTFLoader();
   let chair;
   loader.load("models/chair.glb", (gltf) => {
-    chair = gltf.scene;
-    chair.scale.set(1, 1, 1);
+    const model = gltf.scene;
+    model.scale.set(1, 1, 1);
 
-    chair.traverse((node) => {
+    // Compute bounding box center
+    const box = new THREE.Box3().setFromObject(model);
+    const center = box.getCenter(new THREE.Vector3());
+    model.position.sub(center);
+
+    // Wrap in pivot group
+    const pivot = new THREE.Group();
+    pivot.add(model);
+
+    // Enable shadows
+    model.traverse((node) => {
       if (node.isMesh) {
         node.castShadow = true;
         node.receiveShadow = true;
       }
     });
 
-    scene.add(chair);
+    scene.add(pivot);
+    chair = pivot;
   }, undefined, (error) => {
     console.error("Error loading chair:", error);
   });
@@ -144,8 +155,6 @@
     renderer.setSize(container.clientWidth, container.clientHeight);
   });
 </script>
-
-
 
     
     
