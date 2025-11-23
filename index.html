@@ -122,7 +122,7 @@ loader.load('models/chair.glb', (gltf) => {
   // Use model height multiplier to give headroom: 0.65 then slightly lower by 2%
   const baseVisualLift = size.y * 0.65;
   const visualLift = baseVisualLift * 0.98; // gently lower 2%
-  pivotGroup.position.set(0, visualLift, 0);
+  pivotGroup.position.set(0, visualLift * 0.98, 0);
 
   // Float: tiny amplitude, applied to child model only
   const floatAmplitude = size.y * 0.0075; // ~0.75% of height
@@ -142,7 +142,8 @@ loader.load('models/chair.glb', (gltf) => {
   const fovFactor = 1.8;
   const z = Math.max(5.5, size.y * fovFactor);
   const camY = visualLift + (size.y * 0.30);
-  camera.position.set(center.x, camY, z);
+  //camera.position.set(center.x, camY, z);
+  camera.position.set(center.x, visualLift * 0.98 + modelSize.y * 0.30, 6);
   camera.lookAt(0, visualLift, 0);
 
   // expose for animate loop and debugging
