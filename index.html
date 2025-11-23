@@ -49,8 +49,8 @@
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   container.appendChild(renderer.domElement);
 
-const helper = new THREE.AxesHelper(1);
-scene.add(helper);
+//const helper = new THREE.AxesHelper(1);
+//scene.add(helper);
     
   // Lighting
   const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.8);
@@ -93,7 +93,7 @@ scene.add(helper);
 
     // Lift pivot so visual center aligns with canvas center
     pivot.position.y = size.y / 2 - center.y;
-    pivot.position.y = 1.2; 
+   // pivot.position.y = 1.2; 
     // Enable shadows
     model.traverse((node) => {
       if (node.isMesh) {
