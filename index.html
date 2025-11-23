@@ -102,24 +102,30 @@ loader.load('models/chair.glb', (gltf) => {
 
   // compute bounding box of the visible geometry
   const box = new THREE.Box3().setFromObject(model);
-  box.getSize(modelSize);
-  const center = box.getCenter(new THREE.Vector3());
+  const size = box.getSize(new THREE.Vector3());   // model size
+  const center = box.getCenter(new THREE.Vector3()); // model center
+  const min = box.min.clone();
 
-  // Shift model so its bounding-box center is at origin
+  // SHIFT 1: move model so its bounding-box center is at origin (keeps rotations symmetric)
   model.position.sub(center);
+
+  // SHIFT 2: remove any tiny negative min bias so feet rest on world y = 0
+  // After centering, min.y is relative to origin; compute footOffset to bring lowest point to y = 0
+  const footOffset = - (min.y - center.y);
+  model.position.y += footOffset;
 
   // Create pivot group and add model
   pivotGroup = new THREE.Group();
   pivotGroup.add(model);
 
-  // Deterministic visual lift: use a multiplier based on model height
-  // base = 0.65 * height, then gently lower by 2% to correct perceived low placement
-  const baseVisualLift = modelSize.y * 0.65; // ≈ 2.2977 for your model
-  const visualLift = baseVisualLift * 0.98;  // gently lower 2% (≈ 2.2517)
+  // Deterministic visual lift: align visual midpoint with canvas center
+  // Use model height multiplier to give headroom: 0.65 then slightly lower by 2%
+  const baseVisualLift = size.y * 0.65;
+  const visualLift = baseVisualLift * 0.98; // gently lower 2%
   pivotGroup.position.set(0, visualLift, 0);
 
-  // Reduced float amplitude: 0.75% of model height for subtle effect
-  const floatAmplitude = modelSize.y * 0.0075; // ≈ 0.0265
+  // Float: tiny amplitude, applied to child model only
+  const floatAmplitude = size.y * 0.0075; // ~0.75% of height
 
   // Enable shadows on all meshes
   model.traverse((n) => {
@@ -132,21 +138,24 @@ loader.load('models/chair.glb', (gltf) => {
 
   scene.add(pivotGroup);
 
-  // Frame camera to the visual center with slightly less headroom
-  camera.position.set(center.x, visualLift + modelSize.y * 0.30, 6);
+  // Camera framing: use model size to set distance and Y so chair sits centered in view
+  const fovFactor = 1.8;
+  const z = Math.max(5.5, size.y * fovFactor);
+  const camY = visualLift + (size.y * 0.30);
+  camera.position.set(center.x, camY, z);
   camera.lookAt(0, visualLift, 0);
 
-  // Expose small references for animate loop
+  // expose for animate loop and debugging
   window._pivotGroup = pivotGroup;
   window._modelRef = model;
-  window._modelSize = modelSize;
+  window._modelSize = size;
   window._floatAmp = floatAmplitude;
 
-  // Debug helpers (kept as requested)
-  console.log('box min', box.min, 'box max', box.max, 'size', modelSize, 'center', center, 'visualLift', visualLift, 'floatAmp', floatAmplitude);
+  // debug helpers (kept)
+  console.log('box min', box.min, 'box max', box.max, 'size', size, 'center', center, 'visualLift', visualLift, 'floatAmp', floatAmplitude);
   const frame = new THREE.BoxHelper(new THREE.Mesh(new THREE.PlaneGeometry(4, 4)), 0xff9900);
   scene.add(frame);
-  const dot = new THREE.Mesh(new THREE.SphereGeometry(0.02), new THREE.MeshBasicMaterial({color:0xff9900}));
+  const dot = new THREE.Mesh(new THREE.SphereGeometry(0.02), new THREE.MeshBasicMaterial({ color: 0xff9900 }));
   dot.position.set(0, visualLift, 0);
   scene.add(dot);
 
