@@ -110,7 +110,6 @@ loader.load('models/chair.glb', (gltf) => {
   model.position.sub(center);
 
   // SHIFT 2: remove any tiny negative min bias so feet rest on world y = 0
-  // After centering, min.y is relative to origin; compute footOffset to bring lowest point to y = 0
   const footOffset = - (min.y - center.y);
   model.position.y += footOffset;
 
@@ -119,13 +118,18 @@ loader.load('models/chair.glb', (gltf) => {
   pivotGroup.add(model);
 
   // Deterministic visual lift: align visual midpoint with canvas center
-  // Use model height multiplier to give headroom: 0.65 then slightly lower by 2%
+  // base = 0.65 * height, then slightly lower (0.98) because chair felt high
   const baseVisualLift = size.y * 0.65;
-  const visualLift = baseVisualLift * 0.98; // gently lower 2%
-  pivotGroup.position.set(0, visualLift * 0.98, 0);
+  let visualLift = baseVisualLift * 0.98; // tuned baseline
 
-  // Float: tiny amplitude, applied to child model only
-  const floatAmplitude = size.y * 0.0075; // ~0.75% of height
+  // Adjust per your instruction: bring chair down a bit and shift left slightly
+  visualLift = visualLift * 0.985; // bring down a further 1.5% (small, safe)
+  const xShift = -0.09; // shift left in world units (negative X). Tweak as needed.
+
+  pivotGroup.position.set(xShift, visualLift, 0);
+
+  // Float: tiny amplitude, applied to child model only (even smaller to avoid perceptual drift)
+  const floatAmplitude = size.y * 0.005; // 0.5% of height
 
   // Enable shadows on all meshes
   model.traverse((n) => {
@@ -141,14 +145,11 @@ loader.load('models/chair.glb', (gltf) => {
   // Camera framing: use model size to set distance and Y so chair sits centered in view
   const fovFactor = 1.8;
   const z = Math.max(5.5, size.y * fovFactor);
-  const camY = visualLift + (size.y * 0.30);
-  //camera.position.set(center.x, camY, z);
-  //camera.position.set(center.x, visualLift * 0.98 + modelSize.y * 0.30, 6);
-  //camera.lookAt(0, visualLift, 0);
-  camera.position.set(center.x, visualLift + modelSize.y * 0.40, 6); // more headroom
-  camera.lookAt(0, visualLift, 0);
+  // move camera Y slightly to re-center after lowering pivot and shifting left
+  const camY = visualLift + (size.y * 0.28);
+  camera.position.set(center.x + xShift * 0.5, camY, z);
+  camera.lookAt(xShift, visualLift, 0);
 
-  
   // expose for animate loop and debugging
   window._pivotGroup = pivotGroup;
   window._modelRef = model;
@@ -156,12 +157,31 @@ loader.load('models/chair.glb', (gltf) => {
   window._floatAmp = floatAmplitude;
 
   // debug helpers (kept)
-  console.log('box min', box.min, 'box max', box.max, 'size', size, 'center', center, 'visualLift', visualLift, 'floatAmp', floatAmplitude);
-  const frame = new THREE.BoxHelper(new THREE.Mesh(new THREE.PlaneGeometry(4, 4)), 0xff9900);
-  scene.add(frame);
+  console.log('box min', box.min, 'box max', box.max, 'size', size, 'center', center, 'visualLift', visualLift, 'floatAmp', floatAmplitude, 'xShift', xShift);
+  // frustum-aligned orange frame (matches canvas view at pivot depth)
+  const pivotPosWorld = new THREE.Vector3(xShift, visualLift, 0);
+  const camWorldPos = camera.getWorldPosition(new THREE.Vector3());
+  const dist = camWorldPos.distanceTo(pivotPosWorld);
+  const fov = THREE.Math.degToRad(camera.fov);
+  const heightAtDist = 2 * Math.tan(fov / 2) * dist;
+  const widthAtDist = heightAtDist * (container.clientWidth / container.clientHeight);
+  const frameGeo = new THREE.PlaneGeometry(widthAtDist, heightAtDist);
+  const edges = new THREE.EdgesGeometry(frameGeo);
+  const frameMat = new THREE.LineBasicMaterial({ color: 0xff9900 });
+  const frameMesh = new THREE.LineSegments(edges, frameMat);
+  frameMesh.position.copy(pivotPosWorld);
+  frameMesh.position.add(new THREE.Vector3().copy(camera.getWorldDirection(new THREE.Vector3())).multiplyScalar(-0.01 * dist));
+  frameMesh.quaternion.copy(camera.quaternion);
+  scene.add(frameMesh);
+  window._debugFrame = frameMesh;
+
+  // pivot dot
   const dot = new THREE.Mesh(new THREE.SphereGeometry(0.02), new THREE.MeshBasicMaterial({ color: 0xff9900 }));
-  dot.position.set(0, visualLift, 0);
+  pivotGroup.updateWorldMatrix(true, true);
+  pivotGroup.getWorldPosition(new THREE.Vector3());
+  dot.position.copy(pivotGroup.getWorldPosition(new THREE.Vector3()));
   scene.add(dot);
+  window._pivotDot = dot;
 
 }, undefined, (err) => {
   console.error('GLTF load error', err);
@@ -207,7 +227,7 @@ function animate() {
     const t = clock.getElapsedTime();
     const model = pivot.children[0];
     if (model) {
-      model.position.y = Math.sin(t * 1.6) * (window._floatAmp || (modelSize.y * 0.0075));
+      model.position.y = Math.sin(t * 1.6) * (window._floatAmp || (modelSize.y * 0.005));
     }
   }
 
