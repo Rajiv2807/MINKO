@@ -34,103 +34,91 @@
 
     <!-- ✅ ES module script for Three.js -->
     <script type="module">
-      import * as THREE from 'https://unpkg.com/three@0.126.1/build/three.module.js';
-      import { OrbitControls } from 'https://unpkg.com/three@0.126.1/examples/jsm/controls/OrbitControls.js';
-      import { GLTFLoader } from 'https://unpkg.com/three@0.126.1/examples/jsm/loaders/GLTFLoader.js';
+  import * as THREE from 'https://unpkg.com/three@0.126.1/build/three.module.js';
+  import { GLTFLoader } from 'https://unpkg.com/three@0.126.1/examples/jsm/loaders/GLTFLoader.js';
 
-      const container = document.getElementById("chair-canvas");
+  const container = document.getElementById("chair-canvas");
 
-      const scene = new THREE.Scene();
-      const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
-      camera.position.set(0, 1.5, 6);
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+  camera.position.set(0, 1.5, 6);
 
-      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-      renderer.setSize(container.clientWidth, container.clientHeight);
-      container.appendChild(renderer.domElement);
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setSize(container.clientWidth, container.clientHeight);
+  container.appendChild(renderer.domElement);
 
-      const clock = new THREE.Clock();
-      
-      // Lighting
-      const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
-      scene.add(hemiLight);
-      const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-      dirLight.position.set(2, 2, 2);
-      scene.add(dirLight);
+  // Lighting
+  const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
+  scene.add(hemiLight);
+  const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+  dirLight.position.set(2, 2, 2);
+  scene.add(dirLight);
 
-      // Load chair model
-      const loader = new GLTFLoader();
-      let chair;
-      loader.load("models/chair.glb", (gltf) => {
-        chair = gltf.scene;
-        chair.scale.set(1, 1, 1);
-        chair.rotation.set(0, Math.PI, 0);
-        scene.add(chair);
-      }, undefined, (error) => {
-        console.error("Error loading chair:", error);
-      });
+  // Load chair model
+  const loader = new GLTFLoader();
+  let chair;
+  loader.load("models/chair.glb", (gltf) => {
+    chair = gltf.scene;
+    chair.scale.set(1, 1, 1);
+    scene.add(chair);
+  }, undefined, (error) => {
+    console.error("Error loading chair:", error);
+  });
 
-      // Rotate on hover
-      container.addEventListener("mousemove", (e) => {
-  if (chair) {
-    const rect = container.getBoundingClientRect();
+  // Target rotations
+  let targetRotationX = 0;
+  let targetRotationY = Math.PI; // showroom forward-facing
 
-    // Normalize cursor position inside the canvas
-    const progressX = (e.clientX - rect.left) / rect.width;   // 0 → 1
-    const progressY = (e.clientY - rect.top) / rect.height;   // 0 → 1
+  // Cursor interaction
+  container.addEventListener("mousemove", (e) => {
+    if (chair) {
+      const rect = container.getBoundingClientRect();
+      const progressX = (e.clientX - rect.left) / rect.width;
+      const progressY = (e.clientY - rect.top) / rect.height;
 
-    // Sideways rotation (Y axis)
-    chair.rotation.y = (progressX - 0.5) * Math.PI * 3; // -180° to +180°
+      targetRotationY = (progressX - 0.5) * Math.PI * 2;       // sideways spin
+      targetRotationX = (progressY - 0.5) * (Math.PI / 2);     // tilt limited to ±45°
+    }
+  });
 
-    // Forward/back tilt (X axis)
-    chair.rotation.x = (progressY - 0.5) * (Math.PI/2); // -180° to +180°
-  }
-});
+  // Reset smoothly when cursor leaves
+  container.addEventListener("mouseleave", () => {
+    targetRotationX = 0;
+    targetRotationY = Math.PI; // showroom pose
+  });
 
-// ✅ Reset to forward-facing when cursor leaves
-container.addEventListener("mouseleave", () => {
-  if (chair) {
-    const targetRotationY = Math.PI; // forward-facing
-    const targetRotationX = 0;
+  // Floating animation clock
+  const clock = new THREE.Clock();
 
-    const reset = () => {
-      if (!chair) return;
+  // Render loop
+  function animate() {
+    requestAnimationFrame(animate);
 
-      // smaller easing factor = smoother glide
-      chair.rotation.y += (targetRotationY - chair.rotation.y) * 0.05;
+    if (chair) {
+      // Smoothly ease toward target rotations
       chair.rotation.x += (targetRotationX - chair.rotation.x) * 0.05;
+      chair.rotation.y += (targetRotationY - chair.rotation.y) * 0.05;
 
-      // keep looping until close enough
-      if (Math.abs(chair.rotation.y - targetRotationY) > 0.001 ||
-          Math.abs(chair.rotation.x - targetRotationX) > 0.001) {
-        requestAnimationFrame(reset);
-      } else {
-        chair.rotation.set(targetRotationX, targetRotationY, 0);
-      }
-    };
-    reset();
+      // Gentle float
+      const t = clock.getElapsedTime();
+      chair.position.y = Math.sin(t * 2) * 0.1;
+    }
+
+    renderer.render(scene, camera);
   }
-});
+  animate();
 
-      
-      // Render loop
-      function animate() {
-        requestAnimationFrame(animate);
-        
-        if (chair) {
-    const t = clock.getElapsedTime();
-    chair.position.y = Math.sin(t) * 0.1; // gentle up/down float
-  }
-        renderer.render(scene, camera);
-      }
-      animate();
+  // Resize handling
+  window.addEventListener("resize", () => {
+    camera.aspect = container.clientWidth / container.clientHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(container.clientWidth, container.clientHeight);
+  });
+</script>
 
-      // Resize handling
-      window.addEventListener("resize", () => {
-        camera.aspect = container.clientWidth / container.clientHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(container.clientWidth, container.clientHeight);
-      });
-    </script>
+    
+    
+    
   </main>
 
   <div id="site-footer"></div>
