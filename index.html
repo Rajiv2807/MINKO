@@ -45,14 +45,31 @@
 
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
   renderer.setSize(container.clientWidth, container.clientHeight);
+  renderer.shadowMap.enabled = true;                 // enable shadows
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;  // soft shadow edges
   container.appendChild(renderer.domElement);
 
   // Lighting
-  const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
+  const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.8);
   scene.add(hemiLight);
-  const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-  dirLight.position.set(2, 2, 2);
+
+  const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+  dirLight.position.set(3, 5, 5);
+  dirLight.castShadow = true;
+  dirLight.shadow.mapSize.width = 1024;
+  dirLight.shadow.mapSize.height = 1024;
+  dirLight.shadow.camera.near = 0.5;
+  dirLight.shadow.camera.far = 20;
   scene.add(dirLight);
+
+  // Ground plane to catch shadows
+  const groundGeo = new THREE.PlaneGeometry(20, 20);
+  const groundMat = new THREE.ShadowMaterial({ opacity: 0.3 });
+  const ground = new THREE.Mesh(groundGeo, groundMat);
+  ground.rotation.x = -Math.PI / 2;
+  ground.position.y = -0.5; // adjust under chair
+  ground.receiveShadow = true;
+  scene.add(ground);
 
   // Load chair model
   const loader = new GLTFLoader();
@@ -60,6 +77,14 @@
   loader.load("models/chair.glb", (gltf) => {
     chair = gltf.scene;
     chair.scale.set(1, 1, 1);
+
+    chair.traverse((node) => {
+      if (node.isMesh) {
+        node.castShadow = true;
+        node.receiveShadow = true;
+      }
+    });
+
     scene.add(chair);
   }, undefined, (error) => {
     console.error("Error loading chair:", error);
@@ -92,24 +117,24 @@
 
   // Render loop with ease-out interpolation
   function animate() {
-  requestAnimationFrame(animate);
+    requestAnimationFrame(animate);
 
-  if (chair) {
-    // Normalize Y rotation difference to avoid full spin
-    let deltaY = targetRotationY - chair.rotation.y;
-    deltaY = ((deltaY + Math.PI) % (2 * Math.PI)) - Math.PI; 
+    if (chair) {
+      // Normalize Y rotation difference to avoid sudden spins
+      let deltaY = targetRotationY - chair.rotation.y;
+      deltaY = ((deltaY + Math.PI) % (2 * Math.PI)) - Math.PI;
 
-    chair.rotation.y += deltaY * 0.08; // ease-out toward target
-    chair.rotation.x += (targetRotationX - chair.rotation.x) * 0.08;
+      // Ease-out interpolation
+      chair.rotation.y += deltaY * 0.08;
+      chair.rotation.x += (targetRotationX - chair.rotation.x) * 0.08;
 
-    // Gentle float
-    const t = clock.getElapsedTime();
-    chair.position.y = Math.sin(t * 2) * 0.1;
+      // Gentle float
+      const t = clock.getElapsedTime();
+      chair.position.y = Math.sin(t * 2) * 0.1;
+    }
+
+    renderer.render(scene, camera);
   }
-
-  renderer.render(scene, camera);
-}
-
   animate();
 
   // Resize handling
@@ -119,6 +144,7 @@
     renderer.setSize(container.clientWidth, container.clientHeight);
   });
 </script>
+
 
 
     
