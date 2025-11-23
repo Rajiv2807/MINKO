@@ -131,7 +131,7 @@ pivotGroup.position.y = visualLift * 1.05; // small upward nudge
 //  camera.lookAt(new THREE.Vector3(0, pivotGroup.position.y, 0));
 camera.position.set(0, 2.6, 6); 
 camera.lookAt(0, pivotGroup.position.y, 0);
-const box = new THREE.Box3().setFromObject(model);
+//const box = new THREE.Box3().setFromObject(model);
 console.log('box min', box.min, 'box max', box.max, 'size', box.getSize(new THREE.Vector3()), 'center', box.getCenter(new THREE.Vector3()));
   const frame = new THREE.BoxHelper(new THREE.Mesh(new THREE.PlaneGeometry(4, 4)), 0xff9900);
 scene.add(frame);
