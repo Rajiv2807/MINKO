@@ -12,10 +12,11 @@ body {
   line-height: 1.6;
 }
 
+/* Chair slot — ensure canvas bounds match the grey slot */
 .chair-slot {
-  padding: 4rem 0;
+  padding: 3rem 0;
   text-align: center;
-  background: #fafafa;
+  background: transparent; /* keep slot clear; grey only on canvas */
 }
 
 .chair-title {
@@ -24,12 +25,19 @@ body {
 }
 
 #chair-canvas {
-  width: 100%;
-  max-width: 600px;
-  height: 500px;
+  width: min(100%, 800px);
+  height: 520px; /* this is the visual slot height */
   margin: 0 auto;
-  background: #f0f0f0; /* optional placeholder */
+  background: #f0f0f0; /* grey slot matches canvas bounds */
+  border-radius: 12px;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.08);
+  position: relative; /* required for renderer sizing */
+  overflow: hidden;   /* prevent canvas overflow */
+  display: block;     /* ensure block-level sizing */
 }
+
+/* Optional debug — uncomment to see exact canvas bounds */
+/* #chair-canvas { outline: 2px dashed orange; } */
 
 
 /* Header & Navigation */
@@ -434,5 +442,10 @@ footer {
   }
   .gallery-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+  /* Responsive canvas height */
+  #chair-canvas {
+    height: 420px;
+    border-radius: 10px;
   }
 }
