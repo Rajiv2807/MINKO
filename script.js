@@ -17,65 +17,6 @@ function updateProductImage(imgId, newSrc) {
   }
 }
 
-/*document.addEventListener("DOMContentLoaded", () => {
-  const container = document.getElementById("chair-canvas");
-
-  // Scene setup
-  const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(
-    45,
-    container.clientWidth / container.clientHeight,
-    0.1,
-    1000
-  );
-  camera.position.set(0, 1, 3);
-
-  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-  renderer.setSize(container.clientWidth, container.clientHeight);
-  container.appendChild(renderer.domElement);
-
-  // Lighting
-  const light = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
-  scene.add(light);
-
-  const directional = new THREE.DirectionalLight(0xffffff, 0.8);
-  directional.position.set(2, 2, 2);
-  scene.add(directional);
-
-  // Load GLB chair
-  const loader = new THREE.GLTFLoader();
-  let chair;
-  loader.load("models/chair.glb", (gltf) => {
-    chair = gltf.scene;
-    chair.scale.set(1, 1, 1);
-    scene.add(chair);
-  });
-
-  // Rotation on hover
-  container.addEventListener("mousemove", (e) => {
-    if (chair) {
-      const rect = container.getBoundingClientRect();
-      const progress = (e.clientX - rect.left) / rect.width;
-      chair.rotation.y = progress * Math.PI * 2; // full 360°
-    }
-  });
-
-  // Render loop
-  function animate() {
-    requestAnimationFrame(animate);
-    renderer.render(scene, camera);
-  }
-  animate();
-
-  // Handle resize
-  window.addEventListener("resize", () => {
-    camera.aspect = container.clientWidth / container.clientHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(container.clientWidth, container.clientHeight);
-  });
-});
-*/
-
 
 document.addEventListener("DOMContentLoaded", () => {
   // Load shared parts
