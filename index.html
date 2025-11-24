@@ -113,17 +113,20 @@ loader.load('models/chair.glb', (gltf) => {
   const footOffset = - (min.y - center.y);
   model.position.y += footOffset;
 
-  // Create pivot group and add model
+  // Create pivot group and add model (pivot stays at origin; we will not change pivotGroup.position)
   pivotGroup = new THREE.Group();
   pivotGroup.add(model);
 
-  // Deterministic visual lift: align visual midpoint with canvas center
+  // Deterministic visual lift: apply lift to the model (not to the pivot)
   // base = 0.65 * height, then slightly lower (0.98) because chair felt high
   const baseVisualLift = size.y * 0.65;
-  const visualLift = baseVisualLift * 0.98; // restored baseline (no extra shifts)
+  const visualLift = baseVisualLift * 0.98;
 
-  // Restore pivot to centered X (0) and the computed visualLift
-  pivotGroup.position.set(0, visualLift, 0);
+  // Apply visual lift to the model's local Y so pivot remains at origin
+  model.position.y += visualLift;
+
+  // Store base model Y for float animation
+  const baseModelY = model.position.y;
 
   // Float: tiny amplitude, applied to child model only
   const floatAmplitude = size.y * 0.0075; // small float
@@ -142,45 +145,51 @@ loader.load('models/chair.glb', (gltf) => {
   // Camera framing: use model size to set distance and Y so chair sits centered in view
   const fovFactor = 1.8;
   const z = Math.max(5.5, size.y * fovFactor);
-  const camY = visualLift + (size.y * 0.30);
+  const camY = baseModelY + (size.y * 0.30);
   camera.position.set(center.x, camY, z);
-  camera.lookAt(0, visualLift, 0);
+  camera.lookAt(0, baseModelY, 0);
 
   // Expose for animate loop and debugging
   window._pivotGroup = pivotGroup;
   window._modelRef = model;
   window._modelSize = size;
   window._floatAmp = floatAmplitude;
+  window._baseModelY = baseModelY;
 
-  // Debug helpers (simple)
+  // Debug helpers (kept)
   console.log('box min', box.min, 'box max', box.max, 'size', size, 'center', center);
   console.log('visualLift', visualLift, 'floatAmp', floatAmplitude);
 
-  // simple frustum-aligned frame for visual reference
-  const pivotPosWorld = pivotGroup.getWorldPosition(new THREE.Vector3());
-  const camWorldPos = camera.getWorldPosition(new THREE.Vector3());
-  const dist = camWorldPos.distanceTo(pivotPosWorld);
-  const fov = THREE.Math.degToRad(camera.fov);
-  const heightAtDist = 2 * Math.tan(fov / 2) * dist;
-  const widthAtDist = heightAtDist * (container.clientWidth / container.clientHeight);
-  const frameGeo = new THREE.PlaneGeometry(widthAtDist, heightAtDist);
-  const edges = new THREE.EdgesGeometry(frameGeo);
-  const frameMat = new THREE.LineBasicMaterial({ color: 0xff9900 });
-  const frameMesh = new THREE.LineSegments(edges, frameMat);
-  frameMesh.position.copy(pivotPosWorld);
-  frameMesh.position.add(new THREE.Vector3().copy(camera.getWorldDirection(new THREE.Vector3())).multiplyScalar(-0.01 * dist));
-  frameMesh.quaternion.copy(camera.quaternion);
-  scene.add(frameMesh);
-  window._debugFrame = frameMesh;
+  // frustum-aligned orange frame (matches canvas view at pivot depth)
+  {
+    const pivotPosWorld = pivotGroup.getWorldPosition(new THREE.Vector3()); // origin unless parent moved
+    const camWorldPos = camera.getWorldPosition(new THREE.Vector3());
+    const dist = camWorldPos.distanceTo(pivotPosWorld);
+    const fov = THREE.Math.degToRad(camera.fov);
+    const heightAtDist = 2 * Math.tan(fov / 2) * dist;
+    const widthAtDist = heightAtDist * (container.clientWidth / container.clientHeight);
+    const frameGeo = new THREE.PlaneGeometry(widthAtDist, heightAtDist);
+    const edges = new THREE.EdgesGeometry(frameGeo);
+    const frameMat = new THREE.LineBasicMaterial({ color: 0xff9900 });
+    const frameMesh = new THREE.LineSegments(edges, frameMat);
+    frameMesh.position.copy(pivotPosWorld);
+    frameMesh.position.add(new THREE.Vector3().copy(camera.getWorldDirection(new THREE.Vector3())).multiplyScalar(-0.01 * dist));
+    frameMesh.quaternion.copy(camera.quaternion);
+    scene.add(frameMesh);
+    window._debugFrame = frameMesh;
+  }
 
-  // pivot dot
-  const dot = new THREE.Mesh(new THREE.SphereGeometry(0.02), new THREE.MeshBasicMaterial({ color: 0xff9900 }));
-  pivotGroup.updateWorldMatrix(true, true);
-  dot.position.copy(pivotGroup.getWorldPosition(new THREE.Vector3()));
-  scene.add(dot);
-  window._pivotDot = dot;
+  // pivot dot (pivot remains at origin)
+  {
+    const dot = new THREE.Mesh(new THREE.SphereGeometry(0.02), new THREE.MeshBasicMaterial({ color: 0xff9900 }));
+    pivotGroup.updateWorldMatrix(true, true);
+    dot.position.copy(pivotGroup.getWorldPosition(new THREE.Vector3()));
+    scene.add(dot);
+    window._pivotDot = dot;
+    console.log('pivot world pos', pivotGroup.getWorldPosition(new THREE.Vector3()));
+  }
 
-  // projection check logs
+  // Additional projection check logs
   {
     const p = pivotGroup.getWorldPosition(new THREE.Vector3());
     const ndc = p.clone().project(camera);
@@ -234,7 +243,8 @@ function animate() {
     const t = clock.getElapsedTime();
     const model = pivot.children[0];
     if (model) {
-      model.position.y = Math.sin(t * 1.6) * (window._floatAmp || (modelSize.y * 0.0075));
+      const baseY = window._baseModelY || model.position.y;
+      model.position.y = baseY + Math.sin(t * 1.6) * (window._floatAmp || 0.0075 * (window._modelSize ? window._modelSize.y : 1));
     }
   }
 
