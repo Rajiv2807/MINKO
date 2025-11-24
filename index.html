@@ -11,29 +11,7 @@
   <script async src="https://cdn.snipcart.com/themes/v3.0.31/default/snipcart.js"></script>
 
   <!-- Header/Footer injection -->
-  <script src="script.js" defer></script>
-</head>
-<body>
-  <!-- ✅ Snipcart div must be inside body -->
-  <div hidden id="snipcart" data-api-key="OWRkYTk0NGQtMGFhZS00OGMwLWE1ZjctNzgyMGM3NmUzODNlNjM4OTg2NDkwODAzODYyNzUx"></div>
-
-  <div id="site-header"></div>
-
-  <main>
-    <section class="hero">
-      <h2>Beautiful Furniture for Modern Homes</h2>
-      <p>Discover our curated collection of study tables, coffee tables, wardrobes, and more — crafted with care and available in multiple finishes.</p>
-      <a href="products.html" class="btn">Shop Now</a>
-    </section>
-
-    <!-- Chair slot -->
-    <section class="chair-slot">
-      <h2 class="chair-title">Featured Chair</h2>
-      <div id="chair-canvas"></div>
-    </section>
-
-    <!-- ✅ ES module script for Three.js -->
-<script type="module">
+  <script type="module">
 import * as THREE from 'https://unpkg.com/three@0.126.1/build/three.module.js';
 import { GLTFLoader } from 'https://unpkg.com/three@0.126.1/examples/jsm/loaders/GLTFLoader.js';
 
@@ -50,9 +28,7 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.domElement.style.display = 'block';
-
-// attach renderer to container
-while (container.firstChild) container.removeChild(container.firstChild);
+container.innerHTML = '';
 container.appendChild(renderer.domElement);
 
 // Resize helper
@@ -70,38 +46,35 @@ function resizeRendererToContainer() {
 resizeRendererToContainer();
 
 // Lights
-const hemi = new THREE.HemisphereLight(0xffffff, 0x444444, 0.8);
-scene.add(hemi);
-
+scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 0.8));
 const dir = new THREE.DirectionalLight(0xffffff, 1.0);
 dir.position.set(3, 5, 5);
 dir.castShadow = true;
-dir.shadow.mapSize.width = 1024;
-dir.shadow.mapSize.height = 1024;
+dir.shadow.mapSize.set(1024, 1024);
 dir.shadow.camera.near = 0.5;
 dir.shadow.camera.far = 30;
 scene.add(dir);
 
 // Ground shadow catcher
-const groundGeo = new THREE.PlaneGeometry(20, 20);
-const groundMat = new THREE.ShadowMaterial({ opacity: 0.28 });
-const ground = new THREE.Mesh(groundGeo, groundMat);
+const ground = new THREE.Mesh(
+  new THREE.PlaneGeometry(20, 20),
+  new THREE.ShadowMaterial({ opacity: 0.28 })
+);
 ground.rotation.x = -Math.PI / 2;
 ground.position.y = -0.5;
 ground.receiveShadow = true;
 scene.add(ground);
 
-// Loader: add the glTF scene exactly as provided (use its internal pivot)
+// Load model with default pivot
 const loader = new GLTFLoader();
 let modelRoot = null;
 let modelSize = new THREE.Vector3();
 
 loader.load('models/chair.glb', (gltf) => {
-  // Use the glTF scene exactly as exported (do not create or move a separate pivot group)
   modelRoot = gltf.scene;
   scene.add(modelRoot);
 
-  // Enable shadows on meshes
+  // Enable shadows
   modelRoot.traverse((n) => {
     if (n.isMesh) {
       n.castShadow = true;
@@ -110,67 +83,59 @@ loader.load('models/chair.glb', (gltf) => {
     }
   });
 
-  // Compute bounding box and size for framing (do not alter modelRoot.position or rotation)
+  // Bounding box and framing
   const box = new THREE.Box3().setFromObject(modelRoot);
-  modelSize = box.getSize(new THREE.Vector3());
   const center = box.getCenter(new THREE.Vector3());
+  modelSize = box.getSize(new THREE.Vector3());
 
-  // Camera framing: position camera so the model fits, but do not change model transforms
+  // Camera framing
   const fovFactor = 1.8;
   const z = Math.max(5.5, modelSize.y * fovFactor);
   const camY = center.y + modelSize.y * 0.28;
   camera.position.set(center.x, camY, z);
   camera.lookAt(center);
 
-  // Optional: if the model's feet are below world y=0 and you want them on the ground,
-  // you can translate the camera or the scene, but we will not change modelRoot transforms.
-  // Log bounding info for debugging
-  console.log('box min', box.min, 'box max', box.max, 'size', modelSize, 'center', center);
-  console.log('Using default glTF pivot (no pivotGroup.position changes).');
-
-  // Debug frame showing camera frustum at model center (visual aid)
-  const pivotPosWorld = center.clone();
-  const camWorldPos = camera.getWorldPosition(new THREE.Vector3());
-  const dist = camWorldPos.distanceTo(pivotPosWorld);
-  const fov = THREE.Math.degToRad(camera.fov);
-  const heightAtDist = 2 * Math.tan(fov / 2) * dist;
-  const widthAtDist = heightAtDist * (container.clientWidth / container.clientHeight);
-  const frameGeo = new THREE.PlaneGeometry(widthAtDist, heightAtDist);
-  const edges = new THREE.EdgesGeometry(frameGeo);
-  const frameMat = new THREE.LineBasicMaterial({ color: 0xff9900 });
-  const frameMesh = new THREE.LineSegments(edges, frameMat);
-  frameMesh.position.copy(pivotPosWorld);
-  frameMesh.position.add(new THREE.Vector3().copy(camera.getWorldDirection(new THREE.Vector3())).multiplyScalar(-0.01 * dist));
-  frameMesh.quaternion.copy(camera.quaternion);
-  scene.add(frameMesh);
-  window._debugFrame = frameMesh;
-
-  // Pivot dot: show the modelRoot world origin (the glTF pivot)
-  const dot = new THREE.Mesh(new THREE.SphereGeometry(0.02), new THREE.MeshBasicMaterial({ color: 0xff9900 }));
+  // Debug dot at model pivot
+  const dot = new THREE.Mesh(
+    new THREE.SphereGeometry(0.02),
+    new THREE.MeshBasicMaterial({ color: 0xff9900 })
+  );
   dot.position.copy(modelRoot.getWorldPosition(new THREE.Vector3()));
   scene.add(dot);
   window._pivotDot = dot;
 
-  // Expose for debugging
-  window._modelRoot = modelRoot;
-  window._modelSize = modelSize;
+  // Debug frame
+  const camWorld = camera.getWorldPosition(new THREE.Vector3());
+  const dist = camWorld.distanceTo(center);
+  const fov = THREE.Math.degToRad(camera.fov);
+  const height = 2 * Math.tan(fov / 2) * dist;
+  const width = height * (container.clientWidth / container.clientHeight);
+  const frame = new THREE.LineSegments(
+    new THREE.EdgesGeometry(new THREE.PlaneGeometry(width, height)),
+    new THREE.LineBasicMaterial({ color: 0xff9900 })
+  );
+  frame.position.copy(center);
+  frame.position.add(camera.getWorldDirection(new THREE.Vector3()).multiplyScalar(-0.01 * dist));
+  frame.quaternion.copy(camera.quaternion);
+  scene.add(frame);
+  window._debugFrame = frame;
 
-  // Log pivot projection
-  const p = modelRoot.getWorldPosition(new THREE.Vector3());
-  const ndc = p.clone().project(camera);
+  // Logs
+  console.log('box min', box.min, 'box max', box.max, 'size', modelSize, 'center', center);
+  const ndc = center.clone().project(camera);
   const px = (ndc.x + 1) / 2 * container.clientWidth;
   const py = (1 - ndc.y) / 2 * container.clientHeight;
-  console.log('glTF pivot world pos', p, 'pivot projected NDC', ndc, 'pivot screen px', { x: px, y: py });
+  console.log('pivot projected NDC', ndc, 'pivot screen px', { x: px, y: py });
 }, undefined, (err) => {
   console.error('GLTF load error', err);
 });
 
-// Interaction targets (rotate the modelRoot around its own pivot)
+// Interaction
 let targetRotationX = 0;
 let targetRotationY = Math.PI;
 
 container.addEventListener('mousemove', (e) => {
-  if (!window._modelRoot) return;
+  if (!modelRoot) return;
   const rect = container.getBoundingClientRect();
   const px = (e.clientX - rect.left) / rect.width;
   const py = (e.clientY - rect.top) / rect.height;
@@ -183,48 +148,40 @@ container.addEventListener('mouseleave', () => {
   targetRotationY = Math.PI;
 });
 
-// Animation loop
+// Animate
 const clock = new THREE.Clock();
-
 function animate() {
   requestAnimationFrame(animate);
   resizeRendererToContainer();
 
-  const model = window._modelRoot;
-  if (model) {
-    // Smoothly interpolate rotation on the model itself (this uses the model's internal pivot)
-    let deltaY = targetRotationY - model.rotation.y;
+  if (modelRoot) {
+    let deltaY = targetRotationY - modelRoot.rotation.y;
     deltaY = ((deltaY + Math.PI) % (2 * Math.PI)) - Math.PI;
-    model.rotation.y += deltaY * 0.08;
-    model.rotation.x += (targetRotationX - model.rotation.x) * 0.08;
-
-    // Optional subtle float applied relative to the model's base Y (no pivot movement)
-    const t = clock.getElapsedTime();
-    const baseY = 0; // keep float relative to model's current local position if desired
-    model.position.y = (model.position.y) + Math.sin(t * 1.6) * (modelSize.y * 0.005) * 0; // disabled by default
+    modelRoot.rotation.y += deltaY * 0.08;
+    modelRoot.rotation.x += (targetRotationX - modelRoot.rotation.x) * 0.08;
   }
 
   renderer.render(scene, camera);
 }
 animate();
 
-// Responsive updates
+// Responsive
 window.addEventListener('resize', () => {
   resizeRendererToContainer();
-  if (window._debugFrame && window._modelRoot) {
-    const pivotPosWorld = window._modelRoot.getWorldPosition(new THREE.Vector3());
-    const camWorldPos = camera.getWorldPosition(new THREE.Vector3());
-    const dist = camWorldPos.distanceTo(pivotPosWorld);
+  if (window._debugFrame && modelRoot) {
+    const center = new THREE.Box3().setFromObject(modelRoot).getCenter(new THREE.Vector3());
+    const camWorld = camera.getWorldPosition(new THREE.Vector3());
+    const dist = camWorld.distanceTo(center);
     const fov = THREE.Math.degToRad(camera.fov);
-    const heightAtDist = 2 * Math.tan(fov / 2) * dist;
-    const widthAtDist = heightAtDist * (container.clientWidth / container.clientHeight);
+    const height = 2 * Math.tan(fov / 2) * dist;
+    const width = height * (container.clientWidth / container.clientHeight);
     window._debugFrame.geometry.dispose();
-    window._debugFrame.geometry = new THREE.EdgesGeometry(new THREE.PlaneGeometry(widthAtDist, heightAtDist));
-    window._debugFrame.position.copy(pivotPosWorld);
+    window._debugFrame.geometry = new THREE.EdgesGeometry(new THREE.PlaneGeometry(width, height));
+    window._debugFrame.position.copy(center);
     window._debugFrame.quaternion.copy(camera.quaternion);
   }
-  if (window._pivotDot && window._modelRoot) {
-    window._pivotDot.position.copy(window._modelRoot.getWorldPosition(new THREE.Vector3()));
+  if (window._pivotDot && modelRoot) {
+    window._pivotDot.position.copy(modelRoot.getWorldPosition(new THREE.Vector3()));
   }
 });
 </script>
