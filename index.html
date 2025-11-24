@@ -123,7 +123,7 @@ loader.load('models/chair.glb', (gltf) => {
 
   // Additional small adjustment requested: bring down a bit and shift left
   visualLift = visualLift * 0.985; // bring down a further 1.5%
-  const xShift = -0.09; // shift left in world units (negative X). Tweak if needed.
+  const xShift = -0.09; // initial left shift in world units
 
   pivotGroup.position.set(xShift, visualLift, 0);
 
@@ -148,7 +148,7 @@ loader.load('models/chair.glb', (gltf) => {
   camera.position.set(center.x + xShift * 0.5, camY, z);
   camera.lookAt(xShift, visualLift, 0);
 
-  // Iterative centering routine: nudges pivot until its screen projection is at canvas center
+  // Iterative centering routine (keeps pivot centered in canvas)
   function centerPivotInCanvas(pivotGroup, camera, container, iterations = 8, tolerancePx = 1) {
     camera.updateMatrixWorld(true);
     pivotGroup.updateWorldMatrix(true, true);
@@ -206,8 +206,127 @@ loader.load('models/chair.glb', (gltf) => {
     pivotGroup.updateWorldMatrix(true, true);
   }
 
-  // Run centering
+  // Run centering to ensure pivot is pixel-centered
   centerPivotInCanvas(pivotGroup, camera, container, 8, 1);
+
+  // -------------------------
+  // Robust visible-centroid alignment (replaces manual nudge)
+  // -------------------------
+  function alignVisibleCentroid(model, pivotGroup, camera, container) {
+    camera.updateMatrixWorld(true);
+    model.updateWorldMatrix(true, true);
+    pivotGroup.updateWorldMatrix(true, true);
+
+    // collect a sample of world-space points from geometry (prefer vertices)
+    const worldPoints = [];
+    model.traverse((node) => {
+      if (node.isMesh && node.geometry) {
+        const geom = node.geometry;
+        // ensure position attribute exists
+        const posAttr = geom.attributes.position;
+        if (!posAttr) return;
+        // sample vertices with a stride to limit cost
+        const stride = Math.max(1, Math.floor(posAttr.count / 2000)); // cap ~2000 samples
+        for (let i = 0; i < posAttr.count; i += stride) {
+          const vx = posAttr.getX(i);
+          const vy = posAttr.getY(i);
+          const vz = posAttr.getZ(i);
+          const local = new THREE.Vector3(vx, vy, vz);
+          // convert to world
+          const world = node.localToWorld(local.clone());
+          worldPoints.push(world);
+        }
+      }
+    });
+
+    if (worldPoints.length === 0) {
+      console.warn('No vertex samples found for centroid alignment.');
+      return;
+    }
+
+    // project points and keep only those in front of camera (ndc.z between -1 and 1 and ndc.z < 1)
+    const screenPts = [];
+    for (let i = 0; i < worldPoints.length; i++) {
+      const w = worldPoints[i].clone();
+      const ndc = w.project(camera);
+      // ndc.z near 1 means close to far plane; we want points with ndc.z < 1 and not behind camera
+      if (ndc.z < 1 && ndc.z > -1) {
+        const sx = (ndc.x + 1) / 2 * container.clientWidth;
+        const sy = (1 - ndc.y) / 2 * container.clientHeight;
+        screenPts.push(new THREE.Vector2(sx, sy));
+      }
+    }
+
+    if (screenPts.length === 0) {
+      console.warn('No visible points found in front of camera for centroid alignment.');
+      return;
+    }
+
+    // compute screen centroid of visible points
+    const centroidScreen = screenPts.reduce((acc, p) => acc.add(p), new THREE.Vector2(0,0)).multiplyScalar(1 / screenPts.length);
+
+    // pivot screen (should be center)
+    const pivotWorld = pivotGroup.getWorldPosition(new THREE.Vector3());
+    const pivotNDC = pivotWorld.clone().project(camera);
+    const pivotScreen = new THREE.Vector2((pivotNDC.x + 1) / 2 * container.clientWidth, (1 - pivotNDC.y) / 2 * container.clientHeight);
+
+    const deltaPx = pivotScreen.clone().sub(centroidScreen);
+    console.log('visible centroid screen', centroidScreen, 'pivot screen', pivotScreen, 'deltaPx', deltaPx, 'samplesUsed', screenPts.length);
+
+    // convert pixel delta to world offset at pivot depth
+    const dist = camera.getWorldPosition(new THREE.Vector3()).distanceTo(pivotWorld);
+
+    // center direction
+    const ndcCenter = new THREE.Vector3((0.5 * 2) - 1, -(0.5 * 2) + 1, 0);
+    ndcCenter.unproject(camera);
+    const dirCenter = ndcCenter.sub(camera.position).normalize();
+
+    // target pixel (centroid + deltaPx moved to pivot)
+    const targetPxX = centroidScreen.x + deltaPx.x;
+    const targetPxY = centroidScreen.y + deltaPx.y;
+    const px = (targetPxX / container.clientWidth) * 2 - 1;
+    const py = - (targetPxY / container.clientHeight) * 2 + 1;
+    const ndcTarget = new THREE.Vector3(px, py, 0);
+    ndcTarget.unproject(camera);
+    const dirTarget = ndcTarget.sub(camera.position).normalize();
+
+    const worldCenter = camera.position.clone().add(dirCenter.multiplyScalar(dist));
+    const worldTarget = camera.position.clone().add(dirTarget.multiplyScalar(dist));
+    const worldOffset = worldTarget.sub(worldCenter);
+
+    // apply offset to model in model.parent local space
+    if (model.parent) {
+      const invParent = new THREE.Matrix4().copy(model.parent.matrixWorld).invert();
+      const localOffset = worldOffset.clone().applyMatrix4(invParent);
+      model.position.add(localOffset);
+    } else {
+      model.position.add(worldOffset);
+    }
+
+    // update and log final positions
+    model.updateWorldMatrix(true, true);
+    pivotGroup.updateWorldMatrix(true, true);
+    const newCentroidWorld = centroidScreen; // will recompute below for verification
+    // verification logs
+    const p = pivotGroup.getWorldPosition(new THREE.Vector3());
+    const ndcP = p.clone().project(camera);
+    const pivotScreenAfter = { x: (ndcP.x + 1) / 2 * container.clientWidth, y: (1 - ndcP.y) / 2 * container.clientHeight };
+    // recompute centroid screen after offset
+    const worldCorners = []; // reuse a small set of visible points for verification
+    const verifyPts = [];
+    for (let i = 0; i < Math.min(200, worldPoints.length); i++) {
+      const w = worldPoints[i].clone();
+      const ndc = w.project(camera);
+      if (ndc.z < 1 && ndc.z > -1) {
+        verifyPts.push(new THREE.Vector2((ndc.x + 1) / 2 * container.clientWidth, (1 - ndc.y) / 2 * container.clientHeight));
+      }
+    }
+    const centroidAfter = verifyPts.length ? verifyPts.reduce((a,p)=>a.add(p), new THREE.Vector2(0,0)).multiplyScalar(1/verifyPts.length) : null;
+    console.log('applied worldOffset', worldOffset, 'pivotScreenAfter', pivotScreenAfter, 'centroidAfter', centroidAfter);
+  }
+
+  // Run visible-centroid alignment
+  alignVisibleCentroid(model, pivotGroup, camera, container);
 
   // Expose for animate loop and debugging
   window._pivotGroup = pivotGroup;
@@ -250,7 +369,7 @@ loader.load('models/chair.glb', (gltf) => {
     console.log('pivot world pos', pivotGroup.getWorldPosition(new THREE.Vector3()));
   }
 
-  // Additional console projection check: pivot screen coords and container size
+  // final projection check logs
   {
     const p = pivotGroup.getWorldPosition(new THREE.Vector3());
     const ndc = p.clone().project(camera);
@@ -259,55 +378,6 @@ loader.load('models/chair.glb', (gltf) => {
     console.log('pivot projected NDC', ndc, 'pivot screen px', { x: px, y: py });
     console.log('container size px', { w: container.clientWidth, h: container.clientHeight, aspect: container.clientWidth / container.clientHeight });
   }
-
-  // -------------------------
-  // QUICK MANUAL NUDGE (you requested a manual nudge)
-  // These values move the visible model (not the pivot). Tweak small increments if needed.
-  // Start with these and adjust by ±0.01 until visually centered.
-  // -------------------------
-  const manualNudge = { x: -0.06, y: -0.04 }; // left and down in model local units
-  model.position.x += manualNudge.x;
-  model.position.y += manualNudge.y;
-
-  // update pivot dot and debug frame after manual nudge
-  if (window._pivotDot) window._pivotDot.position.copy(pivotGroup.getWorldPosition(new THREE.Vector3()));
-  if (window._debugFrame) {
-    const pivotPosWorld = pivotGroup.getWorldPosition(new THREE.Vector3());
-    const camWorldPos = camera.getWorldPosition(new THREE.Vector3());
-    const dist = camWorldPos.distanceTo(pivotPosWorld);
-    const fov = THREE.Math.degToRad(camera.fov);
-    const heightAtDist = 2 * Math.tan(fov / 2) * dist;
-    const widthAtDist = heightAtDist * (container.clientWidth / container.clientHeight);
-    window._debugFrame.geometry.dispose();
-    window._debugFrame.geometry = new THREE.EdgesGeometry(new THREE.PlaneGeometry(widthAtDist, heightAtDist));
-    window._debugFrame.position.copy(pivotPosWorld);
-    window._debugFrame.quaternion.copy(camera.quaternion);
-  }
-
-  // Log centroid before and after nudge for verification
-  (function logCentroid() {
-    const boxAfter = new THREE.Box3().setFromObject(model);
-    const corners = [
-      new THREE.Vector3(boxAfter.min.x, boxAfter.min.y, boxAfter.min.z),
-      new THREE.Vector3(boxAfter.min.x, boxAfter.min.y, boxAfter.max.z),
-      new THREE.Vector3(boxAfter.min.x, boxAfter.max.y, boxAfter.min.z),
-      new THREE.Vector3(boxAfter.min.x, boxAfter.max.y, boxAfter.max.z),
-      new THREE.Vector3(boxAfter.max.x, boxAfter.min.y, boxAfter.min.z),
-      new THREE.Vector3(boxAfter.max.x, boxAfter.min.y, boxAfter.max.z),
-      new THREE.Vector3(boxAfter.max.x, boxAfter.max.y, boxAfter.min.z),
-      new THREE.Vector3(boxAfter.max.x, boxAfter.max.y, boxAfter.max.z),
-    ];
-    const worldCorners = corners.map(c => model.localToWorld(c.clone()));
-    const screenPts = worldCorners.map(w => {
-      const ndc = w.clone().project(camera);
-      return new THREE.Vector2((ndc.x + 1) / 2 * container.clientWidth, (1 - ndc.y) / 2 * container.clientHeight);
-    });
-    const centroid = screenPts.reduce((a, p) => a.add(p), new THREE.Vector2(0,0)).multiplyScalar(1 / screenPts.length);
-    const pivotWorld = pivotGroup.getWorldPosition(new THREE.Vector3());
-    const pivotNDC = pivotWorld.clone().project(camera);
-    const pivotScreen = { x: (pivotNDC.x + 1) / 2 * container.clientWidth, y: (1 - pivotNDC.y) / 2 * container.clientHeight };
-    console.log('model centroid screen px (after nudge)', centroid, 'pivot screen px', pivotScreen, 'container center px', { x: container.clientWidth/2, y: container.clientHeight/2 });
-  })();
 
 }, undefined, (err) => {
   console.error('GLTF load error', err);
