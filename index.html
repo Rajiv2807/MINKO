@@ -1,270 +1,37 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Minko Interiors - Home</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Minko Interiors</title>
 
-  <!-- Snipcart CSS/JS -->
-  <link rel="stylesheet" href="https://cdn.snipcart.com/themes/v3.0.31/default/snipcart.css" />
-  <script async src="https://cdn.snipcart.com/themes/v3.0.31/default/snipcart.js"></script>
-
-  <style>
-    /* Baseline layout safeguards (keeps header/hero/footer visible) */
-    :root { --bg:#f7f7f7; --fg:#111; --muted:#666; --brand:#d33; }
-    html, body { margin:0; padding:0; background:var(--bg); color:var(--fg); font-family:'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
-    main { max-width:1200px; margin:24px auto; padding:0 20px; }
-
-    /* Hero section */
-    .hero { max-width:1200px; margin:24px auto; padding:0 20px; }
-    .hero h1 { margin:0 0 6px; font-size:32px; }
-    .hero p { margin:0; color:var(--muted); }
-
-    /* Chair canvas slot */
-    #chair-canvas {
-      width: 100%;
-      height: 520px; /* adjust as needed */
-      background: #fff;
-      border: 1px solid #e5e5e5;
-      border-radius: 8px;
-      position: relative;
-      overflow: hidden;
-    }
-
-    /* Buy CTA row */
-    .buy-row {
-      display:flex; align-items:center; justify-content:space-between;
-      margin-top:12px;
-    }
-    .snipcart-add-item {
-      background:var(--brand); color:#fff; border:none; padding:12px 18px; border-radius:6px; cursor:pointer; font-weight:600;
-    }
-
-    /* Header/footer placeholders are filled by includes; keep visible if CSS elsewhere is missing */
-    #site-header, #site-footer { background:#fff; }
-  </style>
+  <!-- Site styles -->
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <!-- Header include target -->
-  <div id="site-header"></div>
+  <!-- Header placeholder (will be injected or filled by script.js if needed) -->
+  <div id="site-header" role="banner"></div>
 
-  <!-- Hero -->
-  <section class="hero" id="hero">
-    <h1>Featured Chair</h1>
-    <p>Crafted wood, premium upholstery, showroom‑grade finish.</p>
-  </section>
-
+  <!-- Hero / Intro -->
   <main>
-    <!-- Chair slot -->
-    <div id="chair-canvas"></div>
-
-    <!-- Product actions -->
-    <div class="buy-row">
-      <div class="meta">
-        <div style="font-weight:600;">Featured Chair</div>
-        <div style="color:var(--muted);">Elegant wooden chair with cushioned seat</div>
+    <section class="hero" id="hero" aria-label="Hero">
+      <div class="hero-inner">
+        <h1 class="hero-title">Minko Interiors</h1>
+        <p class="hero-sub">Curated furniture, crafted for living spaces.</p>
       </div>
-      <button class="snipcart-add-item"
-        data-item-id="featured-chair"
-        data-item-name="Featured Chair"
-        data-item-price="249.00"
-        data-item-url="/"
-        data-item-description="Elegant wooden chair with cushioned seat">
-        Buy Now — $249
-      </button>
-    </div>
+    </section>
+
+    <!-- Chair viewer slot -->
+    <section class="chair-slot" aria-label="Featured chair">
+      <div class="chair-title">Featured Chair</div>
+      <div id="chair-canvas" role="img" aria-label="3D chair viewer"></div>
+    </section>
   </main>
 
-  <!-- Footer include target -->
-  <div id="site-footer"></div>
+  <!-- Footer placeholder (will be injected or filled by script.js if needed) -->
+  <div id="site-footer" role="contentinfo"></div>
 
-  <!-- Snipcart setup with your public API key -->
-  <div hidden id="snipcart" data-api-key="OWRkYTk0NGQtMGFhZS00OGMwLWE1ZjctNzgyMGM3NmUzODNlNjM4OTg2NDkwODAzODYyNzUx"></div>
-
-  <!-- Header/Footer includes loader -->
-  <script>
-    // Loads header.html into #site-header and footer.html into #site-footer
-    (function injectIncludes() {
-      const inject = (id, url) => fetch(url)
-        .then(r => r.ok ? r.text() : Promise.reject(url))
-        .then(html => { const el = document.getElementById(id); if (el) el.innerHTML = html; })
-        .catch(() => console.warn('Include not found:', url));
-      inject('site-header', '/header.html');
-      inject('site-footer', '/footer.html');
-    })();
-  </script>
-
-  <!-- Three.js script: default glTF pivot + centered framing + debug dot -->
-  <script type="module">
-    import * as THREE from 'https://unpkg.com/three@0.126.1/build/three.module.js';
-    import { GLTFLoader } from 'https://unpkg.com/three@0.126.1/examples/jsm/loaders/GLTFLoader.js';
-
-    const container = document.getElementById('chair-canvas');
-    if (!container) {
-      console.error('#chair-canvas not found.');
-    }
-
-    // Scene + camera
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(
-      45,
-      Math.max(1, container.clientWidth) / Math.max(1, container.clientHeight),
-      0.1,
-      1000
-    );
-    camera.position.set(0, 2.6, 6);
-
-    // Renderer
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    container.appendChild(renderer.domElement);
-
-    function resizeRendererToContainer() {
-      const w = Math.max(1, container.clientWidth);
-      const h = Math.max(1, container.clientHeight);
-      renderer.setSize(w, h, false);
-      camera.aspect = w / h;
-      camera.updateProjectionMatrix();
-    }
-    resizeRendererToContainer();
-
-    // Lights
-    scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 0.8));
-    const dir = new THREE.DirectionalLight(0xffffff, 1.0);
-    dir.position.set(3, 5, 5);
-    dir.castShadow = true;
-    dir.shadow.mapSize.set(1024, 1024);
-    dir.shadow.camera.near = 0.5;
-    dir.shadow.camera.far = 30;
-    scene.add(dir);
-
-    // Ground shadow catcher
-    const ground = new THREE.Mesh(
-      new THREE.PlaneGeometry(20, 20),
-      new THREE.ShadowMaterial({ opacity: 0.28 })
-    );
-    ground.rotation.x = -Math.PI / 2;
-    ground.position.y = -0.5;
-    ground.receiveShadow = true;
-    scene.add(ground);
-
-    // Load model with default pivot
-    const loader = new GLTFLoader();
-    let modelRoot = null;
-    let modelSize = new THREE.Vector3();
-
-    loader.load('models/chair.glb', (gltf) => {
-      modelRoot = gltf.scene;
-      scene.add(modelRoot);
-
-      // Enable shadows
-      modelRoot.traverse((n) => {
-        if (n.isMesh) {
-          n.castShadow = true;
-          n.receiveShadow = true;
-          if (n.material) n.material.needsUpdate = true;
-        }
-      });
-
-      // Bounding box and framing
-      const box = new THREE.Box3().setFromObject(modelRoot);
-      const center = box.getCenter(new THREE.Vector3());
-      modelSize = box.getSize(new THREE.Vector3());
-
-      // Camera framing (no model transforms changed)
-      const fovFactor = 1.8;
-      const z = Math.max(5.5, modelSize.y * fovFactor);
-      const camY = center.y + modelSize.y * 0.28;
-      camera.position.set(center.x, camY, z);
-      camera.lookAt(center);
-
-      // Debug dot at model pivot
-      const dot = new THREE.Mesh(
-        new THREE.SphereGeometry(0.02),
-        new THREE.MeshBasicMaterial({ color: 0xff9900 })
-      );
-      dot.position.copy(modelRoot.getWorldPosition(new THREE.Vector3()));
-      scene.add(dot);
-      window._pivotDot = dot;
-
-      // Debug frame
-      const camWorld = camera.getWorldPosition(new THREE.Vector3());
-      const dist = camWorld.distanceTo(center);
-      const fov = THREE.Math.degToRad(camera.fov);
-      const height = 2 * Math.tan(fov / 2) * dist;
-      const width = height * (container.clientWidth / container.clientHeight);
-      const frame = new THREE.LineSegments(
-        new THREE.EdgesGeometry(new THREE.PlaneGeometry(width, height)),
-        new THREE.LineBasicMaterial({ color: 0xff9900 })
-      );
-      frame.position.copy(center);
-      frame.position.add(camera.getWorldDirection(new THREE.Vector3()).multiplyScalar(-0.01 * dist));
-      frame.quaternion.copy(camera.quaternion);
-      scene.add(frame);
-      window._debugFrame = frame;
-
-      console.log('box min', box.min, 'box max', box.max, 'size', modelSize, 'center', center);
-    }, undefined, (err) => {
-      console.error('GLTF load error', err);
-    });
-
-    // Interaction
-    let targetRotationX = 0;
-    let targetRotationY = Math.PI;
-
-    container.addEventListener('mousemove', (e) => {
-      if (!modelRoot) return;
-      const rect = container.getBoundingClientRect();
-      const px = (e.clientX - rect.left) / rect.width;
-      const py = (e.clientY - rect.top) / rect.height;
-      targetRotationY = (px - 0.5) * Math.PI * 2;
-      targetRotationX = (py - 0.5) * (Math.PI / 2);
-    });
-
-    container.addEventListener('mouseleave', () => {
-      targetRotationX = 0;
-      targetRotationY = Math.PI;
-    });
-
-    // Animate
-    function animate() {
-      requestAnimationFrame(animate);
-      resizeRendererToContainer();
-
-      if (modelRoot) {
-        let deltaY = targetRotationY - modelRoot.rotation.y;
-        deltaY = ((deltaY + Math.PI) % (2 * Math.PI)) - Math.PI;
-        modelRoot.rotation.y += deltaY * 0.08;
-        modelRoot.rotation.x += (targetRotationX - modelRoot.rotation.x) * 0.08;
-      }
-
-      renderer.render(scene, camera);
-    }
-    animate();
-
-    // Responsive
-    window.addEventListener('resize', () => {
-      resizeRendererToContainer();
-      if (window._debugFrame && modelRoot) {
-        const center = new THREE.Box3().setFromObject(modelRoot).getCenter(new THREE.Vector3());
-        const camWorld = camera.getWorldPosition(new THREE.Vector3());
-        const dist = camWorld.distanceTo(center);
-        const fov = THREE.Math.degToRad(camera.fov);
-        const height = 2 * Math.tan(fov / 2) * dist;
-        const width = height * (container.clientWidth / container.clientHeight);
-        window._debugFrame.geometry.dispose();
-        window._debugFrame.geometry = new THREE.EdgesGeometry(new THREE.PlaneGeometry(width, height));
-        window._debugFrame.position.copy(center);
-        window._debugFrame.quaternion.copy(camera.quaternion);
-      }
-      if (window._pivotDot && modelRoot) {
-        window._pivotDot.position.copy(modelRoot.getWorldPosition(new THREE.Vector3()));
-      }
-    });
-  </script>
+  <!-- Your app script (module) -->
+  <script type="module" src="script.js"></script>
 </body>
 </html>
