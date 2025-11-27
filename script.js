@@ -1,7 +1,6 @@
 // script.js
 // Single-module entry: loads shared header/footer, UI interactions, and mounts Three.js chair viewer.
-// All lighting and the orange pivot marker removed per request.
-// Note: without lights, GLTF materials that rely on lighting may appear flat or dark.
+// Restored lighting so the model keeps its original look. No pivot marker.
 
 import * as THREE from 'https://unpkg.com/three@0.126.1/build/three.module.js';
 import { GLTFLoader } from 'https://unpkg.com/three@0.126.1/examples/jsm/loaders/GLTFLoader.js';
@@ -38,7 +37,7 @@ let wrapper = null;        // wrapper Object3D placed at bottom-center pivot
 let visualCenter = null;   // bounding-box center (world space) used for centering
 let containerEl = null;
 
-// Default wrapper nudge fractions (fractions of view width/height)
+// Keep the nudge values you set
 let wrapperAdjust = {
   shiftFractionX: 0.10,
   shiftFractionY: 0.06
@@ -105,7 +104,7 @@ function centerCameraOnVisual() {
 }
 
 /* -----------------------------
-   Initialize Three.js viewer (no lights, no pivot marker)
+   Initialize Three.js viewer (lighting restored)
    ----------------------------- */
 function initThree(container) {
   containerEl = container;
@@ -123,13 +122,25 @@ function initThree(container) {
 
   renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  // enable shadows only if your model/materials expect them; keep off for now to avoid heavy darkening
+  renderer.shadowMap.enabled = false;
   renderer.domElement.style.display = 'block';
   if (!container.contains(renderer.domElement)) container.appendChild(renderer.domElement);
 
   resizeRendererToContainer();
 
-  // No lights added at all (per request). Materials that depend on lights may appear flat.
-  // Simple neutral ground for visual grounding (no shadow material)
+  // Restored lighting similar to original setup
+  const hemi = new THREE.HemisphereLight(0xffffff, 0x444444, 0.9);
+  scene.add(hemi);
+
+  const dir = new THREE.DirectionalLight(0xffffff, 1.0);
+  dir.position.set(3, 5, 5);
+  scene.add(dir);
+
+  const ambient = new THREE.AmbientLight(0xffffff, 0.18);
+  scene.add(ambient);
+
+  // Simple neutral ground for visual grounding
   const groundMat = new THREE.MeshBasicMaterial({ color: 0xf2f2f2 });
   const ground = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), groundMat);
   ground.rotation.x = -Math.PI / 2;
@@ -143,10 +154,9 @@ function initThree(container) {
     (gltf) => {
       modelRoot = gltf.scene;
 
-      // Do not set castShadow/receiveShadow anywhere and do not add any helper pivot
+      // Keep materials as-is; ensure they update
       modelRoot.traverse((n) => {
         if (n.isMesh && n.material) {
-          // keep materials as-is; do not modify lighting properties
           n.material.needsUpdate = true;
         }
       });
