@@ -1,7 +1,6 @@
 // script.js
 // Single-module entry: loads shared header/footer, UI interactions, and mounts Three.js chair viewer.
-// Adds an automatic wrapper-centering routine that ensures equal left/right and top/bottom margins
-// by projecting the model's bounding box to screen space and nudging the wrapper accordingly.
+// Shadowing tuned to be subtle: softer directional shadows + a gentle blob contact shadow.
 
 import * as THREE from 'https://unpkg.com/three@0.126.1/build/three.module.js';
 import { GLTFLoader } from 'https://unpkg.com/three@0.126.1/examples/jsm/loaders/GLTFLoader.js';
@@ -34,18 +33,12 @@ function updateProductImage(imgId, newSrc) {
 
 let renderer, scene, camera;
 let modelRoot = null;
-let wrapper = null;        // wrapper Object3D placed at bottom-center pivot
+let wrapper = null;
 let debugFrame = null;
 let pivotDot = null;
-let visualCenter = null;   // bounding-box center (world space) used for centering
+let visualCenter = null;
 let containerEl = null;
-
-// Default wrapper nudge fractions (fractions of view width/height)
-let wrapperAdjust = {
-  shiftFractionX: 0.10,
-  shiftFractionY: -0.04
-};
-window._wrapperAdjust = wrapperAdjust;
+let blobShadow = null; // soft contact shadow mesh
 
 /* -----------------------------
    Helpers
@@ -63,164 +56,60 @@ function resizeRendererToContainer() {
   }
 }
 
-/**
- * Project a world-space Vector3 to normalized device coordinates (NDC).
- * Returns a Vector3 where x,y in [-1,1], z is depth.
- */
-function worldToNDC(vecWorld, cam) {
-  const ndc = vecWorld.clone().project(cam);
-  return ndc;
-}
+/* -----------------------------
+   Create a soft radial gradient texture for blob shadow
+   ----------------------------- */
+function createBlobTexture(size = 256) {
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext('2d');
 
-/**
- * Compute the 8 corners of a Box3 in world space.
- * Returns array of Vector3.
- */
-function box3Corners(box) {
-  const min = box.min;
-  const max = box.max;
-  return [
-    new THREE.Vector3(min.x, min.y, min.z),
-    new THREE.Vector3(min.x, min.y, max.z),
-    new THREE.Vector3(min.x, max.y, min.z),
-    new THREE.Vector3(min.x, max.y, max.z),
-    new THREE.Vector3(max.x, min.y, min.z),
-    new THREE.Vector3(max.x, min.y, max.z),
-    new THREE.Vector3(max.x, max.y, min.z),
-    new THREE.Vector3(max.x, max.y, max.z)
-  ];
-}
+  // radial gradient: center dark -> transparent edges
+  const cx = size / 2;
+  const cy = size / 2;
+  const r = size / 2;
+  const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+  grad.addColorStop(0, 'rgba(0,0,0,0.65)');
+  grad.addColorStop(0.35, 'rgba(0,0,0,0.35)');
+  grad.addColorStop(0.6, 'rgba(0,0,0,0.12)');
+  grad.addColorStop(1, 'rgba(0,0,0,0)');
 
-/**
- * Convert an NDC x or y value to world-space offset at a given distance from camera.
- * ndcX in [-1,1] -> world offset along camera right vector = ndcX * (viewWidth/2)
- * ndcY in [-1,1] -> world offset along camera up vector = ndcY * (viewHeight/2)
- */
-function ndcToWorldOffset(ndcX, ndcY, cam, distance, container) {
-  const fovRad = THREE.Math.degToRad(cam.fov);
-  const viewHeight = 2 * Math.tan(fovRad / 2) * distance;
-  const viewWidth = viewHeight * (container.clientWidth / container.clientHeight);
-  const camDir = new THREE.Vector3(); cam.getWorldDirection(camDir);
-  const camUp = cam.up.clone().normalize();
-  const camRight = new THREE.Vector3().crossVectors(camDir, camUp).normalize();
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, size, size);
 
-  const worldOffset = new THREE.Vector3();
-  worldOffset.addScaledVector(camRight, ndcX * (viewWidth / 2));
-  worldOffset.addScaledVector(camUp, ndcY * (viewHeight / 2));
-  return worldOffset;
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.needsUpdate = true;
+  tex.minFilter = THREE.LinearFilter;
+  tex.magFilter = THREE.LinearFilter;
+  tex.encoding = THREE.sRGBEncoding;
+  return tex;
 }
 
 /* -----------------------------
-   Auto-centering routine
+   Wrapper nudge helper (keeps existing API)
    ----------------------------- */
-
-/**
- * autoCenterWrapper:
- * - Projects the model's bounding box corners to NDC (screen space).
- * - Computes left/right/top/bottom extents in NDC.
- * - Calculates the pixel (or NDC) offsets needed to make left/right margins equal and top/bottom margins equal.
- * - Converts those offsets into world-space and moves the wrapper accordingly.
- *
- * Options:
- *  - paddingFraction: fraction of view (0..0.5) to leave as padding on each side (optional)
- *  - applyManual: optional manual additional shift in fractions {x, y} (positive x moves model left, positive y moves model up)
- */
-function autoCenterWrapper({ paddingFraction = 0.0, applyManual = { x: 0, y: 0 } } = {}) {
-  if (!wrapper || !modelRoot || !camera || !containerEl || !visualCenter) {
-    console.warn('autoCenterWrapper: required objects not ready.');
+function nudgeWrapper(shiftFractionX = 0.06, shiftFractionY = 0.04) {
+  if (!wrapper || !camera || !visualCenter || !containerEl) {
+    console.warn('nudgeWrapper: required objects not ready.');
     return;
   }
-
-  // Compute world-space bounding box of the wrapper (which contains the model)
-  const box = new THREE.Box3().setFromObject(wrapper);
-  if (!box.isEmpty()) {
-    // Get the 8 corners in world space
-    const corners = box3Corners(box);
-
-    // Project corners to NDC
-    const ndcs = corners.map(c => worldToNDC(c, camera));
-
-    // Compute min/max in NDC space (x and y)
-    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-    ndcs.forEach(n => {
-      if (n.x < minX) minX = n.x;
-      if (n.x > maxX) maxX = n.x;
-      if (n.y < minY) minY = n.y;
-      if (n.y > maxY) maxY = n.y;
-    });
-
-    // Apply padding fraction by shrinking the allowed extents
-    // paddingFraction is fraction of view width/height to leave as margin on each side
-    // We convert paddingFraction to NDC units: paddingNDC = paddingFraction * 2 (since NDC spans 2 units)
-    const paddingNDCx = paddingFraction * 2;
-    const paddingNDCy = paddingFraction * 2;
-
-    // Compute current center in NDC of the projected bbox
-    const bboxCenterNDCx = (minX + maxX) / 2;
-    const bboxCenterNDCy = (minY + maxY) / 2;
-
-    // Desired center is (0,0) in NDC, but we can also bias it by padding (we'll keep centered)
-    const desiredCenterNDCx = 0;
-    const desiredCenterNDCy = 0;
-
-    // Compute delta in NDC to move bbox center to desired center
-    const deltaNDCx = desiredCenterNDCx - bboxCenterNDCx;
-    const deltaNDCy = desiredCenterNDCy - bboxCenterNDCy;
-
-    // Convert NDC delta to world offset at the distance of the visual center
-    const camToCenterDist = camera.position.distanceTo(visualCenter);
-    const worldOffsetFromCenter = ndcToWorldOffset(deltaNDCx, deltaNDCy, camera, camToCenterDist, containerEl);
-
-    // Apply the computed offset to wrapper (move wrapper so model shifts on screen)
-    wrapper.position.add(worldOffsetFromCenter);
-
-    // Now compute additional manual adjustments (fractions of view)
-    // applyManual.x positive -> move model left (we move wrapper along -camRight)
-    // applyManual.y positive -> move model up (we move wrapper along +camUp)
-    if (applyManual && (applyManual.x !== 0 || applyManual.y !== 0)) {
-      const fovRad = THREE.Math.degToRad(camera.fov);
-      const viewHeight = 2 * Math.tan(fovRad / 2) * camToCenterDist;
-      const viewWidth = viewHeight * (containerEl.clientWidth / containerEl.clientHeight);
-      const camDir = new THREE.Vector3(); camera.getWorldDirection(camDir);
-      const camUp = camera.up.clone().normalize();
-      const camRight = new THREE.Vector3().crossVectors(camDir, camUp).normalize();
-
-      const manualRightOffset = viewWidth * applyManual.x;
-      const manualUpOffset = viewHeight * applyManual.y;
-
-      wrapper.position.addScaledVector(camRight, -manualRightOffset);
-      wrapper.position.addScaledVector(camUp, manualUpOffset);
-    }
-
-    // Update debug helpers if present
-    if (debugFrame) {
-      const camWorld = camera.getWorldPosition(new THREE.Vector3());
-      const dist = camWorld.distanceTo(visualCenter);
-      const fovRad = THREE.Math.degToRad(camera.fov);
-      const height = 2 * Math.tan(fovRad / 2) * dist;
-      const width = height * (containerEl.clientWidth / containerEl.clientHeight);
-      debugFrame.geometry.dispose();
-      debugFrame.geometry = new THREE.EdgesGeometry(new THREE.PlaneGeometry(width, height));
-      debugFrame.position.copy(visualCenter);
-      debugFrame.position.add(camera.getWorldDirection(new THREE.Vector3()).multiplyScalar(-0.01 * dist));
-      debugFrame.quaternion.copy(camera.quaternion);
-    }
-
-    console.log('autoCenterWrapper applied', {
-      minX, maxX, minY, maxY,
-      bboxCenterNDCx, bboxCenterNDCy,
-      deltaNDCx, deltaNDCy,
-      wrapperPos: wrapper.position.toArray()
-    });
-  } else {
-    console.warn('autoCenterWrapper: computed empty bounding box.');
-  }
+  const camToCenterDist = camera.position.distanceTo(visualCenter);
+  const fovRad = THREE.Math.degToRad(camera.fov);
+  const viewHeight = 2 * Math.tan(fovRad / 2) * camToCenterDist;
+  const viewWidth = viewHeight * (containerEl.clientWidth / containerEl.clientHeight);
+  const camDir = new THREE.Vector3(); camera.getWorldDirection(camDir);
+  const camUp = camera.up.clone().normalize();
+  const camRight = new THREE.Vector3().crossVectors(camDir, camUp).normalize();
+  const manualRightOffset = viewWidth * shiftFractionX;
+  const manualUpOffset = viewHeight * shiftFractionY;
+  wrapper.position.addScaledVector(camRight, -manualRightOffset);
+  wrapper.position.addScaledVector(camUp, manualUpOffset);
+  console.log('nudgeWrapper applied', { shiftFractionX, shiftFractionY, wrapperPos: wrapper.position.toArray() });
 }
 
 /* -----------------------------
    Initialize Three.js viewer
    ----------------------------- */
-
 function initThree(container) {
   containerEl = container;
 
@@ -244,26 +133,45 @@ function initThree(container) {
 
   resizeRendererToContainer();
 
-  const hemi = new THREE.HemisphereLight(0xffffff, 0x444444, 0.9);
+  // Lighting tuned for subtle shadows
+  // Lower hemisphere intensity so ambient fill is gentle
+  const hemi = new THREE.HemisphereLight(0xffffff, 0x444444, 0.55);
   scene.add(hemi);
 
-  const dir = new THREE.DirectionalLight(0xffffff, 1.0);
+  // Directional light provides the main shadow but softened and dimmed
+  const dir = new THREE.DirectionalLight(0xffffff, 0.6); // reduced intensity
   dir.position.set(3, 5, 5);
+
+  // Shadow settings: softer, lower resolution to avoid harsh edges
   dir.castShadow = true;
-  dir.shadow.mapSize.set(1024, 1024);
+  dir.shadow.mapSize.set(512, 512); // smaller map for softer look
+  // radius softens the shadow edges (works with PCFSoftShadowMap)
+  if ('radius' in dir.shadow) dir.shadow.radius = 8;
+  // adjust camera for shadow caster to cover model area
+  const d = 6;
+  dir.shadow.camera.left = -d;
+  dir.shadow.camera.right = d;
+  dir.shadow.camera.top = d;
+  dir.shadow.camera.bottom = -d;
   dir.shadow.camera.near = 0.5;
   dir.shadow.camera.far = 30;
   scene.add(dir);
 
+  // Very subtle ambient to lift darkest parts
+  const ambient = new THREE.AmbientLight(0xffffff, 0.12);
+  scene.add(ambient);
+
+  // Ground shadow catcher with low opacity
   const ground = new THREE.Mesh(
-    new THREE.PlaneGeometry(20, 20),
-    new THREE.ShadowMaterial({ opacity: 0.28 })
+    new THREE.PlaneGeometry(40, 40),
+    new THREE.ShadowMaterial({ opacity: 0.08 }) // subtle shadow catcher
   );
   ground.rotation.x = -Math.PI / 2;
   ground.position.y = -0.5;
   ground.receiveShadow = true;
   scene.add(ground);
 
+  // GLTF loader
   const loader = new GLTFLoader();
   loader.load(
     'models/chair.glb',
@@ -278,13 +186,16 @@ function initThree(container) {
         }
       });
 
+      // compute bounding box and center
       const box = new THREE.Box3().setFromObject(modelRoot);
       const center = box.getCenter(new THREE.Vector3());
       const size = box.getSize(new THREE.Vector3());
       visualCenter = center.clone();
 
+      // bottom-center pivot
       const bottomCenter = new THREE.Vector3(center.x, box.min.y, center.z);
 
+      // wrapper at bottom-center and reparent model into wrapper
       wrapper = new THREE.Object3D();
       wrapper.position.copy(bottomCenter);
       modelRoot.position.sub(bottomCenter);
@@ -298,9 +209,24 @@ function initThree(container) {
       camera.position.set(bottomCenter.x, camY, z);
       camera.lookAt(bottomCenter);
 
-      // First try: auto-center wrapper with optional small manual tweak
-      // You can call window.autoCenterWrapper(...) later with different parameters.
-      autoCenterWrapper({ paddingFraction: 0.0, applyManual: { x: wrapperAdjust.shiftFractionX, y: wrapperAdjust.shiftFractionY } });
+      // Create a soft blob shadow sized to the model footprint
+      // Blob plane sits just above the ground to avoid z-fighting
+      const footprintSize = Math.max(size.x, size.z) * 1.15; // slightly larger than model footprint
+      const blobTex = createBlobTexture(512);
+      const blobMat = new THREE.MeshBasicMaterial({
+        map: blobTex,
+        transparent: true,
+        opacity: 0.28, // subtle darkness
+        depthWrite: false
+      });
+      blobShadow = new THREE.Mesh(new THREE.PlaneGeometry(footprintSize, footprintSize), blobMat);
+      blobShadow.rotation.x = -Math.PI / 2;
+      // place blob slightly above ground (use bottomCenter.y + small offset)
+      blobShadow.position.set(bottomCenter.x, bottomCenter.y + 0.001, bottomCenter.z);
+      // ensure it doesn't cast shadows and doesn't receive them (it's a fake)
+      blobShadow.receiveShadow = false;
+      blobShadow.castShadow = false;
+      scene.add(blobShadow);
 
       // Debug pivot dot
       pivotDot = new THREE.Mesh(
@@ -326,6 +252,7 @@ function initThree(container) {
       debugFrame.quaternion.copy(camera.quaternion);
       scene.add(debugFrame);
 
+      // Expose for debugging
       window._modelWrapper = wrapper;
       window._visualCenter = visualCenter.clone();
 
@@ -355,6 +282,7 @@ function initThree(container) {
     targetRotationY = Math.PI;
   });
 
+  // Animation loop
   function animate() {
     requestAnimationFrame(animate);
     resizeRendererToContainer();
@@ -366,13 +294,24 @@ function initThree(container) {
       wrapper.rotation.x += (targetRotationX - wrapper.rotation.x) * 0.08;
     }
 
+    // Keep blob shadow positioned under wrapper (in case wrapper is nudged)
+    if (blobShadow && wrapper) {
+      // blob should follow wrapper X/Z and sit at wrapper.position.y (bottom center)
+      blobShadow.position.x = wrapper.position.x;
+      blobShadow.position.z = wrapper.position.z;
+      // keep it just above ground
+      // wrapper.position.y is bottom-center Y; place blob slightly above that
+      blobShadow.position.y = wrapper.position.y + 0.001;
+    }
+
     renderer.render(scene, camera);
   }
   animate();
 
+  // Keep debug helpers updated on resize
   window.addEventListener('resize', () => {
     resizeRendererToContainer();
-    if (debugFrame && wrapper && visualCenter) {
+    if (debugFrame && visualCenter) {
       const center = new THREE.Box3().setFromObject(wrapper).getCenter(new THREE.Vector3());
       const camWorld = camera.getWorldPosition(new THREE.Vector3());
       const dist = camWorld.distanceTo(center);
@@ -450,35 +389,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
 /* -----------------------------
    Runtime helpers
-   - window.autoCenterWrapper({ paddingFraction, applyManual: {x,y} })
-   - window.nudgeWrapper(x,y) to apply simple fraction nudges (keeps existing wrapper position)
-   - window.resetWrapper() to reload page (simple reset)
+   - window.nudgeWrapper(x,y) to nudge model
+   - window.setBlobOpacity(v) to tweak blob darkness at runtime
    ----------------------------- */
 
-window.autoCenterWrapper = function(opts = {}) {
-  autoCenterWrapper(opts);
+window.nudgeWrapper = function(shiftX = 0.06, shiftY = 0.04) {
+  nudgeWrapper(shiftX, shiftY);
 };
 
-window.nudgeWrapper = function(shiftX = wrapperAdjust.shiftFractionX, shiftY = wrapperAdjust.shiftFractionY) {
-  if (!wrapper || !camera || !visualCenter || !containerEl) {
-    console.warn('nudgeWrapper: required objects not ready.');
-    return;
+window.setBlobOpacity = function(op) {
+  if (blobShadow && blobShadow.material) {
+    blobShadow.material.opacity = Math.max(0, Math.min(1, op));
+    console.log('blob opacity set to', blobShadow.material.opacity);
+  } else {
+    console.warn('blobShadow not ready');
   }
-  // reuse nudge logic: positive shiftX moves model left, positive shiftY moves model up
-  const camToCenterDist = camera.position.distanceTo(visualCenter);
-  const fovRad = THREE.Math.degToRad(camera.fov);
-  const viewHeight = 2 * Math.tan(fovRad / 2) * camToCenterDist;
-  const viewWidth = viewHeight * (containerEl.clientWidth / containerEl.clientHeight);
-  const camDir = new THREE.Vector3(); camera.getWorldDirection(camDir);
-  const camUp = camera.up.clone().normalize();
-  const camRight = new THREE.Vector3().crossVectors(camDir, camUp).normalize();
-  const manualRightOffset = viewWidth * shiftX;
-  const manualUpOffset = viewHeight * shiftY;
-  wrapper.position.addScaledVector(camRight, -manualRightOffset);
-  wrapper.position.addScaledVector(camUp, manualUpOffset);
-  console.log('nudgeWrapper applied', { shiftX, shiftY, wrapperPos: wrapper.position.toArray() });
-};
-
-window.resetWrapper = function() {
-  console.log('To reset wrapper to original bottom-center, reload the page.');
 };
