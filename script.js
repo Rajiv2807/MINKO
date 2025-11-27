@@ -45,8 +45,8 @@ let containerEl = null;
 
 // Default manual camera shift fractions (tweak these)
 let cameraAdjust = {
-  shiftFractionX: 0.06, // positive moves camera right -> model appears left
-  shiftFractionY: 0.04  // positive moves camera down -> model appears up when applied as negative
+  shiftFractionX: 0.08, // positive moves camera right -> model appears left
+  shiftFractionY: 0.06  // positive moves camera down -> model appears up when applied as negative
 };
 
 // Expose for runtime tweaking in console
