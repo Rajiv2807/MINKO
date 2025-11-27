@@ -1,6 +1,6 @@
 // script.js
 // Single-module entry: loads shared header/footer, UI interactions, and mounts Three.js chair viewer.
-// Shadowing tuned to be subtle: softer directional shadows + a gentle blob contact shadow.
+// All shadow-related code removed for a clean, non-shadowed render.
 
 import * as THREE from 'https://unpkg.com/three@0.126.1/build/three.module.js';
 import { GLTFLoader } from 'https://unpkg.com/three@0.126.1/examples/jsm/loaders/GLTFLoader.js';
@@ -9,6 +9,7 @@ import { GLTFLoader } from 'https://unpkg.com/three@0.126.1/examples/jsm/loaders
    Shared includes + utilities
    ----------------------------- */
 
+// Utility to load shared header/footer
 function loadSharedPart(id, file) {
   fetch(file)
     .then(res => {
@@ -22,9 +23,12 @@ function loadSharedPart(id, file) {
     .catch(err => console.error(`Error loading ${file}:`, err));
 }
 
+// Swatch image update function
 function updateProductImage(imgId, newSrc) {
   const imgElement = document.getElementById(imgId);
-  if (imgElement) imgElement.src = newSrc;
+  if (imgElement) {
+    imgElement.src = newSrc;
+  }
 }
 
 /* -----------------------------
@@ -33,12 +37,18 @@ function updateProductImage(imgId, newSrc) {
 
 let renderer, scene, camera;
 let modelRoot = null;
-let wrapper = null;
+let wrapper = null;        // wrapper Object3D placed at bottom-center pivot
 let debugFrame = null;
 let pivotDot = null;
-let visualCenter = null;
+let visualCenter = null;   // bounding-box center (world space) used for centering
 let containerEl = null;
-let blobShadow = null; // soft contact shadow mesh
+
+// Default wrapper nudge fractions (fractions of view width/height)
+let wrapperAdjust = {
+  shiftFractionX: 0.10,
+  shiftFractionY: -0.04
+};
+window._wrapperAdjust = wrapperAdjust;
 
 /* -----------------------------
    Helpers
@@ -57,38 +67,9 @@ function resizeRendererToContainer() {
 }
 
 /* -----------------------------
-   Create a soft radial gradient texture for blob shadow
+   Simple wrapper nudge (moves model visually)
    ----------------------------- */
-function createBlobTexture(size = 256) {
-  const canvas = document.createElement('canvas');
-  canvas.width = canvas.height = size;
-  const ctx = canvas.getContext('2d');
-
-  // radial gradient: center dark -> transparent edges
-  const cx = size / 2;
-  const cy = size / 2;
-  const r = size / 2;
-  const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-  grad.addColorStop(0, 'rgba(0,0,0,0.65)');
-  grad.addColorStop(0.35, 'rgba(0,0,0,0.35)');
-  grad.addColorStop(0.6, 'rgba(0,0,0,0.12)');
-  grad.addColorStop(1, 'rgba(0,0,0,0)');
-
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, size, size);
-
-  const tex = new THREE.CanvasTexture(canvas);
-  tex.needsUpdate = true;
-  tex.minFilter = THREE.LinearFilter;
-  tex.magFilter = THREE.LinearFilter;
-  tex.encoding = THREE.sRGBEncoding;
-  return tex;
-}
-
-/* -----------------------------
-   Wrapper nudge helper (keeps existing API)
-   ----------------------------- */
-function nudgeWrapper(shiftFractionX = 0.06, shiftFractionY = 0.04) {
+function nudgeWrapper(shiftFractionX = wrapperAdjust.shiftFractionX, shiftFractionY = wrapperAdjust.shiftFractionY) {
   if (!wrapper || !camera || !visualCenter || !containerEl) {
     console.warn('nudgeWrapper: required objects not ready.');
     return;
@@ -102,19 +83,41 @@ function nudgeWrapper(shiftFractionX = 0.06, shiftFractionY = 0.04) {
   const camRight = new THREE.Vector3().crossVectors(camDir, camUp).normalize();
   const manualRightOffset = viewWidth * shiftFractionX;
   const manualUpOffset = viewHeight * shiftFractionY;
+  // Apply: positive shiftFractionX moves model left (move wrapper along -camRight)
   wrapper.position.addScaledVector(camRight, -manualRightOffset);
+  // positive shiftFractionY moves model up (move wrapper along +camUp)
   wrapper.position.addScaledVector(camUp, manualUpOffset);
+  wrapperAdjust.shiftFractionX = shiftFractionX;
+  wrapperAdjust.shiftFractionY = shiftFractionY;
+  window._wrapperAdjust = wrapperAdjust;
   console.log('nudgeWrapper applied', { shiftFractionX, shiftFractionY, wrapperPos: wrapper.position.toArray() });
 }
 
 /* -----------------------------
-   Initialize Three.js viewer
+   Camera centering helper (centers visualCenter in canvas)
+   ----------------------------- */
+function centerCameraOnVisual() {
+  if (!camera || !visualCenter || !containerEl) return;
+  // Simple framing: position camera at a distance based on model height and look at visual center
+  const box = new THREE.Box3().setFromObject(wrapper || modelRoot);
+  const size = box.getSize(new THREE.Vector3());
+  const fovFactor = 1.8;
+  const dist = Math.max(5.5, size.y * fovFactor);
+  const camY = visualCenter.y + size.y * 0.28;
+  camera.position.set(visualCenter.x, camY, visualCenter.z + dist);
+  camera.lookAt(visualCenter);
+  // optional small nudge using wrapperAdjust if desired
+  nudgeWrapper(wrapperAdjust.shiftFractionX, wrapperAdjust.shiftFractionY);
+}
+
+/* -----------------------------
+   Initialize Three.js viewer (no shadows)
    ----------------------------- */
 function initThree(container) {
   containerEl = container;
 
   scene = new THREE.Scene();
-  scene.background = null;
+  scene.background = null; // transparent so CSS background shows through
 
   camera = new THREE.PerspectiveCamera(
     45,
@@ -126,49 +129,31 @@ function initThree(container) {
 
   renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-  renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  // shadows removed: do not enable shadowMap
   renderer.domElement.style.display = 'block';
-  if (!container.contains(renderer.domElement)) container.appendChild(renderer.domElement);
+  if (!container.contains(renderer.domElement)) {
+    container.appendChild(renderer.domElement);
+  }
 
+  // Initial resize
   resizeRendererToContainer();
 
-  // Lighting tuned for subtle shadows
-  // Lower hemisphere intensity so ambient fill is gentle
-  const hemi = new THREE.HemisphereLight(0xffffff, 0x444444, 0.55);
+  // Lighting (no shadows)
+  const hemi = new THREE.HemisphereLight(0xffffff, 0x444444, 0.6);
   scene.add(hemi);
 
-  // Directional light provides the main shadow but softened and dimmed
-  const dir = new THREE.DirectionalLight(0xffffff, 0.6); // reduced intensity
-  dir.position.set(3, 5, 5);
+  const key = new THREE.DirectionalLight(0xffffff, 0.6);
+  key.position.set(3, 5, 5);
+  scene.add(key);
 
-  // Shadow settings: softer, lower resolution to avoid harsh edges
-  dir.castShadow = true;
-  dir.shadow.mapSize.set(512, 512); // smaller map for softer look
-  // radius softens the shadow edges (works with PCFSoftShadowMap)
-  if ('radius' in dir.shadow) dir.shadow.radius = 8;
-  // adjust camera for shadow caster to cover model area
-  const d = 6;
-  dir.shadow.camera.left = -d;
-  dir.shadow.camera.right = d;
-  dir.shadow.camera.top = d;
-  dir.shadow.camera.bottom = -d;
-  dir.shadow.camera.near = 0.5;
-  dir.shadow.camera.far = 30;
-  scene.add(dir);
-
-  // Very subtle ambient to lift darkest parts
   const ambient = new THREE.AmbientLight(0xffffff, 0.12);
   scene.add(ambient);
 
-  // Ground shadow catcher with low opacity
-  const ground = new THREE.Mesh(
-    new THREE.PlaneGeometry(40, 40),
-    new THREE.ShadowMaterial({ opacity: 0.08 }) // subtle shadow catcher
-  );
+  // Simple ground plane for visual grounding (no shadow material)
+  const groundMat = new THREE.MeshBasicMaterial({ color: 0xf2f2f2 });
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), groundMat);
   ground.rotation.x = -Math.PI / 2;
   ground.position.y = -0.5;
-  ground.receiveShadow = true;
   scene.add(ground);
 
   // GLTF loader
@@ -178,11 +163,11 @@ function initThree(container) {
     (gltf) => {
       modelRoot = gltf.scene;
 
+      // Do not set castShadow/receiveShadow anywhere (shadows removed)
+      // Keep materials as-is
       modelRoot.traverse((n) => {
-        if (n.isMesh) {
-          n.castShadow = true;
-          n.receiveShadow = true;
-          if (n.material) n.material.needsUpdate = true;
+        if (n.isMesh && n.material) {
+          n.material.needsUpdate = true;
         }
       });
 
@@ -192,43 +177,24 @@ function initThree(container) {
       const size = box.getSize(new THREE.Vector3());
       visualCenter = center.clone();
 
-      // bottom-center pivot
+      // Compute bottom-center pivot: center.x, box.min.y, center.z
       const bottomCenter = new THREE.Vector3(center.x, box.min.y, center.z);
 
-      // wrapper at bottom-center and reparent model into wrapper
+      // Create wrapper at bottom-center pivot and reparent model into wrapper
       wrapper = new THREE.Object3D();
       wrapper.position.copy(bottomCenter);
+
+      // Move model so its world position becomes relative to wrapper origin
       modelRoot.position.sub(bottomCenter);
+
+      // Add model into wrapper and add wrapper to scene
       wrapper.add(modelRoot);
       scene.add(wrapper);
 
-      // initial camera framing
-      const fovFactor = 1.8;
-      const z = Math.max(5.5, size.y * fovFactor);
-      const camY = bottomCenter.y + size.y * 0.28;
-      camera.position.set(bottomCenter.x, camY, z);
-      camera.lookAt(bottomCenter);
+      // Initial camera framing and centering
+      centerCameraOnVisual();
 
-      // Create a soft blob shadow sized to the model footprint
-      // Blob plane sits just above the ground to avoid z-fighting
-      const footprintSize = Math.max(size.x, size.z) * 1.15; // slightly larger than model footprint
-      const blobTex = createBlobTexture(512);
-      const blobMat = new THREE.MeshBasicMaterial({
-        map: blobTex,
-        transparent: true,
-        opacity: 0.28, // subtle darkness
-        depthWrite: false
-      });
-      blobShadow = new THREE.Mesh(new THREE.PlaneGeometry(footprintSize, footprintSize), blobMat);
-      blobShadow.rotation.x = -Math.PI / 2;
-      // place blob slightly above ground (use bottomCenter.y + small offset)
-      blobShadow.position.set(bottomCenter.x, bottomCenter.y + 0.001, bottomCenter.z);
-      // ensure it doesn't cast shadows and doesn't receive them (it's a fake)
-      blobShadow.receiveShadow = false;
-      blobShadow.castShadow = false;
-      scene.add(blobShadow);
-
-      // Debug pivot dot
+      // Debug pivot dot at wrapper position (bottom-center)
       pivotDot = new THREE.Mesh(
         new THREE.SphereGeometry(0.02),
         new THREE.MeshBasicMaterial({ color: 0xff9900 })
@@ -237,22 +203,7 @@ function initThree(container) {
       scene.add(pivotDot);
       window._pivotDot = pivotDot;
 
-      // Debug frame
-      const camWorld = camera.getWorldPosition(new THREE.Vector3());
-      const dist = camWorld.distanceTo(visualCenter);
-      const fovRad = THREE.Math.degToRad(camera.fov);
-      const height = 2 * Math.tan(fovRad / 2) * dist;
-      const width = height * (containerEl.clientWidth / containerEl.clientHeight);
-      debugFrame = new THREE.LineSegments(
-        new THREE.EdgesGeometry(new THREE.PlaneGeometry(width, height)),
-        new THREE.LineBasicMaterial({ color: 0xff9900 })
-      );
-      debugFrame.position.copy(visualCenter);
-      debugFrame.position.add(camera.getWorldDirection(new THREE.Vector3()).multiplyScalar(-0.01 * dist));
-      debugFrame.quaternion.copy(camera.quaternion);
-      scene.add(debugFrame);
-
-      // Expose for debugging
+      // Expose wrapper and visualCenter for debugging
       window._modelWrapper = wrapper;
       window._visualCenter = visualCenter.clone();
 
@@ -264,7 +215,7 @@ function initThree(container) {
     }
   );
 
-  // Interaction: rotate wrapper
+  // Interaction: rotate the wrapper (so rotation happens around bottom-center pivot)
   let targetRotationX = 0;
   let targetRotationY = Math.PI;
 
@@ -288,20 +239,11 @@ function initThree(container) {
     resizeRendererToContainer();
 
     if (wrapper) {
+      // smooth shortest-path rotation on Y
       let deltaY = targetRotationY - wrapper.rotation.y;
       deltaY = ((deltaY + Math.PI) % (2 * Math.PI)) - Math.PI;
       wrapper.rotation.y += deltaY * 0.08;
       wrapper.rotation.x += (targetRotationX - wrapper.rotation.x) * 0.08;
-    }
-
-    // Keep blob shadow positioned under wrapper (in case wrapper is nudged)
-    if (blobShadow && wrapper) {
-      // blob should follow wrapper X/Z and sit at wrapper.position.y (bottom center)
-      blobShadow.position.x = wrapper.position.x;
-      blobShadow.position.z = wrapper.position.z;
-      // keep it just above ground
-      // wrapper.position.y is bottom-center Y; place blob slightly above that
-      blobShadow.position.y = wrapper.position.y + 0.001;
     }
 
     renderer.render(scene, camera);
@@ -311,18 +253,6 @@ function initThree(container) {
   // Keep debug helpers updated on resize
   window.addEventListener('resize', () => {
     resizeRendererToContainer();
-    if (debugFrame && visualCenter) {
-      const center = new THREE.Box3().setFromObject(wrapper).getCenter(new THREE.Vector3());
-      const camWorld = camera.getWorldPosition(new THREE.Vector3());
-      const dist = camWorld.distanceTo(center);
-      const fov = THREE.Math.degToRad(camera.fov);
-      const height = 2 * Math.tan(fov / 2) * dist;
-      const width = height * (containerEl.clientWidth / containerEl.clientHeight);
-      debugFrame.geometry.dispose();
-      debugFrame.geometry = new THREE.EdgesGeometry(new THREE.PlaneGeometry(width, height));
-      debugFrame.position.copy(center);
-      debugFrame.quaternion.copy(camera.quaternion);
-    }
     if (pivotDot && wrapper) pivotDot.position.copy(wrapper.position);
   });
 }
@@ -332,76 +262,91 @@ function initThree(container) {
    ----------------------------- */
 
 document.addEventListener("DOMContentLoaded", () => {
+  // Load shared parts (header/footer)
   loadSharedPart("site-header", "header.html");
   loadSharedPart("site-footer", "footer.html");
 
-  // swatches
+  // --- Swatch interactions ---
   const swatches = document.querySelectorAll(".color-swatch[data-target][data-src]");
   swatches.forEach(swatch => {
     swatch.addEventListener("click", () => {
       const targetId = swatch.getAttribute("data-target");
       const newSrc = swatch.getAttribute("data-src");
       updateProductImage(targetId, newSrc);
+
+      // Visual feedback
       const siblings = swatch.parentElement?.querySelectorAll(".color-swatch");
       siblings?.forEach(s => s.classList.remove("active"));
       swatch.classList.add("active");
     });
   });
 
-  // gallery observer
+  // --- Eight-slot gallery animation using IntersectionObserver ---
   const slots = document.querySelectorAll(".gallery-slot img");
+
   if (slots.length) {
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
-        if (entry.isIntersecting) entry.target.classList.add("scaled");
-        else entry.target.classList.remove("scaled");
+        if (entry.isIntersecting) {
+          entry.target.classList.add("scaled");
+        } else {
+          entry.target.classList.remove("scaled"); // optional: replay when scrolled out
+        }
       });
     }, { threshold: 0.3 });
 
     slots.forEach((img, i) => {
+      // Optional staggered delay per slot
       const rowIndex = Math.floor(i / 4);
       const colIndex = i % 4;
       const delay = rowIndex * 0.2 + colIndex * 0.1;
       img.style.setProperty("--delay", `${delay}s`);
+
       observer.observe(img);
     });
   }
 
+  // --- Title slide-in animation (scroll-triggered) ---
   const title = document.querySelector(".gallery-title");
   if (title) {
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) title.classList.add("active");
-        else title.classList.remove("active");
-      });
-    }, { threshold: 0.3 });
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            title.classList.add("active");
+          } else {
+            title.classList.remove("active"); // reset so it replays
+          }
+        });
+      },
+      { threshold: 0.3 }
+    );
     observer.observe(title);
   }
 
+  // Initialize Three.js viewer into the chair canvas
   const container = document.getElementById('chair-canvas');
   if (container) {
-    try { initThree(container); }
-    catch (err) { console.error('Failed to initialize 3D viewer:', err); }
+    try {
+      initThree(container);
+    } catch (err) {
+      console.error('Failed to initialize 3D viewer:', err);
+    }
   } else {
     console.warn('#chair-canvas not found — 3D viewer not initialized.');
   }
 });
 
 /* -----------------------------
-   Runtime helpers
-   - window.nudgeWrapper(x,y) to nudge model
-   - window.setBlobOpacity(v) to tweak blob darkness at runtime
+   Runtime helpers for quick testing
+   - window.nudgeWrapper(x,y) to try new values (fractions)
+   - window.centerCamera() to reframe and apply current nudge
    ----------------------------- */
 
-window.nudgeWrapper = function(shiftX = 0.06, shiftY = 0.04) {
+window.nudgeWrapper = function(shiftX = wrapperAdjust.shiftFractionX, shiftY = wrapperAdjust.shiftFractionY) {
   nudgeWrapper(shiftX, shiftY);
 };
 
-window.setBlobOpacity = function(op) {
-  if (blobShadow && blobShadow.material) {
-    blobShadow.material.opacity = Math.max(0, Math.min(1, op));
-    console.log('blob opacity set to', blobShadow.material.opacity);
-  } else {
-    console.warn('blobShadow not ready');
-  }
+window.centerCamera = function() {
+  centerCameraOnVisual();
 };
