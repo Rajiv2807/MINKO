@@ -42,8 +42,8 @@ let containerEl = null;
 
 // Default wrapper nudge fractions (fractions of view width/height)
 let wrapperAdjust = {
-  shiftFractionX: 0.06,
-  shiftFractionY: 0.04
+  shiftFractionX: 0.10,
+  shiftFractionY: -0.04
 };
 window._wrapperAdjust = wrapperAdjust;
 
