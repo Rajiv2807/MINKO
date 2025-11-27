@@ -1,6 +1,6 @@
 // script.js
 // Single-module entry: loads shared header/footer, UI interactions, and mounts Three.js chair viewer.
-// Camera centering includes adjustable manual offsets so you can try different values quickly.
+// This version applies a configurable wrapper nudge (moves the model) so you can shift the chair left/up easily.
 
 import * as THREE from 'https://unpkg.com/three@0.126.1/build/three.module.js';
 import { GLTFLoader } from 'https://unpkg.com/three@0.126.1/examples/jsm/loaders/GLTFLoader.js';
@@ -43,14 +43,14 @@ let pivotDot = null;
 let visualCenter = null;   // bounding-box center (world space) used for centering
 let containerEl = null;
 
-// Default manual camera shift fractions (tweak these)
-let cameraAdjust = {
-  shiftFractionX: 0.12, // positive moves camera right -> model appears left
-  shiftFractionY: 0.08  // positive moves camera down -> model appears up when applied as negative
+// Default wrapper nudge fractions (fractions of view width/height)
+let wrapperAdjust = {
+  shiftFractionX: 0.06, // positive moves model left (we apply sign internally)
+  shiftFractionY: 0.04  // positive moves model up
 };
 
-// Expose for runtime tweaking in console
-window._cameraAdjust = cameraAdjust;
+// Expose for runtime tweaking
+window._wrapperAdjust = wrapperAdjust;
 
 /* -----------------------------
    Helper: resize renderer
@@ -68,16 +68,16 @@ function resizeRendererToContainer() {
 }
 
 /* -----------------------------
-   Camera centering function
-   - centers visualCenter in the canvas
-   - applies manual fractional shifts (cameraAdjust)
-   - callable at runtime: window.centerCamera(x,y)
+   Wrapper nudge function
+   - Moves wrapper in world space so the model appears shifted on screen
+   - shiftFractionX: fraction of view width (0.0 - 0.2 typical)
+   - shiftFractionY: fraction of view height (0.0 - 0.2 typical)
    ----------------------------- */
-function centerCameraWithAdjust(shiftFractionX = cameraAdjust.shiftFractionX, shiftFractionY = cameraAdjust.shiftFractionY) {
-  if (!camera || !visualCenter || !containerEl) return;
-
-  // Project visual center to NDC using current camera
-  const ndc = visualCenter.clone().project(camera); // x,y in [-1,1]
+function nudgeWrapper(shiftFractionX = wrapperAdjust.shiftFractionX, shiftFractionY = wrapperAdjust.shiftFractionY) {
+  if (!wrapper || !camera || !visualCenter || !containerEl) {
+    console.warn('nudgeWrapper: required objects not ready yet.');
+    return;
+  }
 
   // Distance from camera to visual center
   const camToCenterDist = camera.position.distanceTo(visualCenter);
@@ -87,39 +87,24 @@ function centerCameraWithAdjust(shiftFractionX = cameraAdjust.shiftFractionX, sh
   const viewHeight = 2 * Math.tan(fovRad / 2) * camToCenterDist;
   const viewWidth = viewHeight * (containerEl.clientWidth / containerEl.clientHeight);
 
-  // Camera-space offsets required to move the projected point to center
-  const camSpaceX = ndc.x * (viewWidth / 2);
-  const camSpaceY = ndc.y * (viewHeight / 2);
-
   // Camera basis vectors
   const camDir = new THREE.Vector3();
   camera.getWorldDirection(camDir); // points from camera toward scene
   const camUp = camera.up.clone().normalize();
   const camRight = new THREE.Vector3().crossVectors(camDir, camUp).normalize();
 
-  // Computed world offset to center the visual point
-  const worldOffset = new THREE.Vector3();
-  worldOffset.addScaledVector(camRight, camSpaceX);
-  worldOffset.addScaledVector(camUp, camSpaceY);
-
-  // Apply computed offset
-  camera.position.add(worldOffset);
-
-  // Manual adjustments (fractions of view size)
+  // Manual offsets in world units
   const manualRightOffset = viewWidth * shiftFractionX;
   const manualUpOffset = viewHeight * shiftFractionY;
 
-  // Apply manual offsets:
-  // - moving camera along camRight moves model opposite on screen (so positive shiftFractionX moves model left)
-  // - moving camera along camUp moves model opposite on screen (so negative shiftFractionY moves model up)
-  camera.position.addScaledVector(camRight, manualRightOffset);
-  camera.position.addScaledVector(camUp, -manualUpOffset);
-
-  // Re-orient camera to look at visual center
-  camera.lookAt(visualCenter);
+  // Apply offsets to wrapper:
+  // - To move the model left on screen, move wrapper along -camRight
+  // - To move the model up on screen, move wrapper along +camUp
+  wrapper.position.addScaledVector(camRight, -manualRightOffset);
+  wrapper.position.addScaledVector(camUp, manualUpOffset);
 
   // Update debug helpers if present
-  if (debugFrame) {
+  if (debugFrame && visualCenter) {
     const camWorld = camera.getWorldPosition(new THREE.Vector3());
     const dist = camWorld.distanceTo(visualCenter);
     const height = 2 * Math.tan(fovRad / 2) * dist;
@@ -131,12 +116,12 @@ function centerCameraWithAdjust(shiftFractionX = cameraAdjust.shiftFractionX, sh
     debugFrame.quaternion.copy(camera.quaternion);
   }
 
-  // Update global adjust object and expose
-  cameraAdjust.shiftFractionX = shiftFractionX;
-  cameraAdjust.shiftFractionY = shiftFractionY;
-  window._cameraAdjust = cameraAdjust;
+  // Save chosen values
+  wrapperAdjust.shiftFractionX = shiftFractionX;
+  wrapperAdjust.shiftFractionY = shiftFractionY;
+  window._wrapperAdjust = wrapperAdjust;
 
-  console.log('centerCameraWithAdjust applied', { shiftFractionX, shiftFractionY, ndc });
+  console.log('nudgeWrapper applied', { shiftFractionX, shiftFractionY, manualRightOffset, manualUpOffset, wrapperPos: wrapper.position.toArray() });
 }
 
 /* -----------------------------
@@ -237,8 +222,8 @@ function initThree(container) {
       camera.position.set(bottomCenter.x, camY, z);
       camera.lookAt(bottomCenter);
 
-      // Now center visualCenter in the canvas and apply manual adjustments
-      centerCameraWithAdjust(cameraAdjust.shiftFractionX, cameraAdjust.shiftFractionY);
+      // Apply wrapper nudge (moves model visually). This is more obvious than tiny camera nudges.
+      nudgeWrapper(wrapperAdjust.shiftFractionX, wrapperAdjust.shiftFractionY);
 
       // Debug pivot dot at wrapper position (bottom-center)
       pivotDot = new THREE.Mesh(
@@ -411,14 +396,22 @@ document.addEventListener("DOMContentLoaded", () => {
 
 /* -----------------------------
    Runtime helpers for quick testing
-   - call window.centerCamera(x,y) to try new values
+   - call window.nudgeWrapper(x,y) to try new values
    - x,y are fractions (e.g., 0.06, 0.04)
+   - call window.resetWrapper() to reset wrapper to original bottom-center (if needed)
    ----------------------------- */
-window.centerCamera = function(shiftX = cameraAdjust.shiftFractionX, shiftY = cameraAdjust.shiftFractionY) {
-  if (!visualCenter || !camera) {
-    console.warn('visualCenter or camera not ready yet.');
+
+window.nudgeWrapper = function(shiftX = wrapperAdjust.shiftFractionX, shiftY = wrapperAdjust.shiftFractionY) {
+  nudgeWrapper(shiftX, shiftY);
+};
+
+window.resetWrapper = function() {
+  if (!window._modelWrapper || !window._visualCenter) {
+    console.warn('resetWrapper: wrapper or visualCenter not ready.');
     return;
   }
-  centerCameraWithAdjust(shiftX, shiftY);
-  console.log('centerCamera called with', { shiftX, shiftY });
+  // Reset wrapper to the original bottom-center recorded at load time if available
+  // We stored wrapper.position at load; to fully reset you may need to reload the page.
+  console.log('Current wrapper position:', window._modelWrapper.position.toArray());
+  console.log('To fully reset to original bottom-center, reload the page.');
 };
