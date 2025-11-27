@@ -1,6 +1,7 @@
 // script.js
 // Single-module entry: loads shared header/footer, UI interactions, and mounts Three.js chair viewer.
-// All shadow-related code removed for a clean, non-shadowed render.
+// All lighting and the orange pivot marker removed per request.
+// Note: without lights, GLTF materials that rely on lighting may appear flat or dark.
 
 import * as THREE from 'https://unpkg.com/three@0.126.1/build/three.module.js';
 import { GLTFLoader } from 'https://unpkg.com/three@0.126.1/examples/jsm/loaders/GLTFLoader.js';
@@ -9,7 +10,6 @@ import { GLTFLoader } from 'https://unpkg.com/three@0.126.1/examples/jsm/loaders
    Shared includes + utilities
    ----------------------------- */
 
-// Utility to load shared header/footer
 function loadSharedPart(id, file) {
   fetch(file)
     .then(res => {
@@ -23,23 +23,18 @@ function loadSharedPart(id, file) {
     .catch(err => console.error(`Error loading ${file}:`, err));
 }
 
-// Swatch image update function
 function updateProductImage(imgId, newSrc) {
   const imgElement = document.getElementById(imgId);
-  if (imgElement) {
-    imgElement.src = newSrc;
-  }
+  if (imgElement) imgElement.src = newSrc;
 }
 
 /* -----------------------------
-   Three.js viewer variables
+   Viewer state
    ----------------------------- */
 
 let renderer, scene, camera;
 let modelRoot = null;
 let wrapper = null;        // wrapper Object3D placed at bottom-center pivot
-let debugFrame = null;
-let pivotDot = null;
 let visualCenter = null;   // bounding-box center (world space) used for centering
 let containerEl = null;
 
@@ -98,7 +93,6 @@ function nudgeWrapper(shiftFractionX = wrapperAdjust.shiftFractionX, shiftFracti
    ----------------------------- */
 function centerCameraOnVisual() {
   if (!camera || !visualCenter || !containerEl) return;
-  // Simple framing: position camera at a distance based on model height and look at visual center
   const box = new THREE.Box3().setFromObject(wrapper || modelRoot);
   const size = box.getSize(new THREE.Vector3());
   const fovFactor = 1.8;
@@ -106,12 +100,12 @@ function centerCameraOnVisual() {
   const camY = visualCenter.y + size.y * 0.28;
   camera.position.set(visualCenter.x, camY, visualCenter.z + dist);
   camera.lookAt(visualCenter);
-  // optional small nudge using wrapperAdjust if desired
+  // apply current wrapper nudge so final framing matches expectation
   nudgeWrapper(wrapperAdjust.shiftFractionX, wrapperAdjust.shiftFractionY);
 }
 
 /* -----------------------------
-   Initialize Three.js viewer (no shadows)
+   Initialize Three.js viewer (no lights, no pivot marker)
    ----------------------------- */
 function initThree(container) {
   containerEl = container;
@@ -129,27 +123,13 @@ function initThree(container) {
 
   renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-  // shadows removed: do not enable shadowMap
   renderer.domElement.style.display = 'block';
-  if (!container.contains(renderer.domElement)) {
-    container.appendChild(renderer.domElement);
-  }
+  if (!container.contains(renderer.domElement)) container.appendChild(renderer.domElement);
 
-  // Initial resize
   resizeRendererToContainer();
 
-  // Lighting (no shadows)
-  const hemi = new THREE.HemisphereLight(0xffffff, 0x444444, 0.6);
-  scene.add(hemi);
-
-  const key = new THREE.DirectionalLight(0xffffff, 0.6);
-  key.position.set(3, 5, 5);
-  scene.add(key);
-
-  const ambient = new THREE.AmbientLight(0xffffff, 0.12);
-  scene.add(ambient);
-
-  // Simple ground plane for visual grounding (no shadow material)
+  // No lights added at all (per request). Materials that depend on lights may appear flat.
+  // Simple neutral ground for visual grounding (no shadow material)
   const groundMat = new THREE.MeshBasicMaterial({ color: 0xf2f2f2 });
   const ground = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), groundMat);
   ground.rotation.x = -Math.PI / 2;
@@ -163,10 +143,10 @@ function initThree(container) {
     (gltf) => {
       modelRoot = gltf.scene;
 
-      // Do not set castShadow/receiveShadow anywhere (shadows removed)
-      // Keep materials as-is
+      // Do not set castShadow/receiveShadow anywhere and do not add any helper pivot
       modelRoot.traverse((n) => {
         if (n.isMesh && n.material) {
+          // keep materials as-is; do not modify lighting properties
           n.material.needsUpdate = true;
         }
       });
@@ -193,15 +173,6 @@ function initThree(container) {
 
       // Initial camera framing and centering
       centerCameraOnVisual();
-
-      // Debug pivot dot at wrapper position (bottom-center)
-      pivotDot = new THREE.Mesh(
-        new THREE.SphereGeometry(0.02),
-        new THREE.MeshBasicMaterial({ color: 0xff9900 })
-      );
-      pivotDot.position.copy(wrapper.position);
-      scene.add(pivotDot);
-      window._pivotDot = pivotDot;
 
       // Expose wrapper and visualCenter for debugging
       window._modelWrapper = wrapper;
@@ -250,10 +221,9 @@ function initThree(container) {
   }
   animate();
 
-  // Keep debug helpers updated on resize
+  // Keep responsive on resize
   window.addEventListener('resize', () => {
     resizeRendererToContainer();
-    if (pivotDot && wrapper) pivotDot.position.copy(wrapper.position);
   });
 }
 
@@ -262,83 +232,63 @@ function initThree(container) {
    ----------------------------- */
 
 document.addEventListener("DOMContentLoaded", () => {
-  // Load shared parts (header/footer)
   loadSharedPart("site-header", "header.html");
   loadSharedPart("site-footer", "footer.html");
 
-  // --- Swatch interactions ---
+  // swatches
   const swatches = document.querySelectorAll(".color-swatch[data-target][data-src]");
   swatches.forEach(swatch => {
     swatch.addEventListener("click", () => {
       const targetId = swatch.getAttribute("data-target");
       const newSrc = swatch.getAttribute("data-src");
       updateProductImage(targetId, newSrc);
-
-      // Visual feedback
       const siblings = swatch.parentElement?.querySelectorAll(".color-swatch");
       siblings?.forEach(s => s.classList.remove("active"));
       swatch.classList.add("active");
     });
   });
 
-  // --- Eight-slot gallery animation using IntersectionObserver ---
+  // gallery observer
   const slots = document.querySelectorAll(".gallery-slot img");
-
   if (slots.length) {
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add("scaled");
-        } else {
-          entry.target.classList.remove("scaled"); // optional: replay when scrolled out
-        }
+        if (entry.isIntersecting) entry.target.classList.add("scaled");
+        else entry.target.classList.remove("scaled");
       });
     }, { threshold: 0.3 });
 
     slots.forEach((img, i) => {
-      // Optional staggered delay per slot
       const rowIndex = Math.floor(i / 4);
       const colIndex = i % 4;
       const delay = rowIndex * 0.2 + colIndex * 0.1;
       img.style.setProperty("--delay", `${delay}s`);
-
       observer.observe(img);
     });
   }
 
-  // --- Title slide-in animation (scroll-triggered) ---
   const title = document.querySelector(".gallery-title");
   if (title) {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting) {
-            title.classList.add("active");
-          } else {
-            title.classList.remove("active"); // reset so it replays
-          }
-        });
-      },
-      { threshold: 0.3 }
-    );
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) title.classList.add("active");
+        else title.classList.remove("active");
+      });
+    }, { threshold: 0.3 });
     observer.observe(title);
   }
 
-  // Initialize Three.js viewer into the chair canvas
   const container = document.getElementById('chair-canvas');
   if (container) {
-    try {
-      initThree(container);
-    } catch (err) {
-      console.error('Failed to initialize 3D viewer:', err);
-    }
+    try { initThree(container); }
+    catch (err) { console.error('Failed to initialize 3D viewer:', err); }
   } else {
     console.warn('#chair-canvas not found — 3D viewer not initialized.');
   }
 });
 
 /* -----------------------------
-   Runtime helpers for quick testing
+   Runtime helpers
    - window.nudgeWrapper(x,y) to try new values (fractions)
    - window.centerCamera() to reframe and apply current nudge
    ----------------------------- */
