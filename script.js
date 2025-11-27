@@ -44,7 +44,7 @@ let pivotDot = null;
 function initThree(container) {
   // Scene
   scene = new THREE.Scene();
-  scene.background = null; // keep transparent so CSS background shows through
+  scene.background = null;
 
   // Camera
   camera = new THREE.PerspectiveCamera(
@@ -61,11 +61,7 @@ function initThree(container) {
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.domElement.style.display = 'block';
-
-  // Append renderer canvas to container if not already appended
-  if (!container.contains(renderer.domElement)) {
-    container.appendChild(renderer.domElement);
-  }
+  if (!container.contains(renderer.domElement)) container.appendChild(renderer.domElement);
 
   // Resize helper
   function resizeRendererToContainer() {
@@ -83,7 +79,6 @@ function initThree(container) {
   // Lights
   const hemi = new THREE.HemisphereLight(0xffffff, 0x444444, 0.9);
   scene.add(hemi);
-
   const dir = new THREE.DirectionalLight(0xffffff, 1.0);
   dir.position.set(3, 5, 5);
   dir.castShadow = true;
@@ -109,7 +104,6 @@ function initThree(container) {
     (gltf) => {
       modelRoot = gltf.scene;
 
-      // enable shadows on meshes
       modelRoot.traverse((n) => {
         if (n.isMesh) {
           n.castShadow = true;
@@ -118,35 +112,64 @@ function initThree(container) {
         }
       });
 
-      // compute bounding box and center
+      // bounding box
       const box = new THREE.Box3().setFromObject(modelRoot);
       const center = box.getCenter(new THREE.Vector3());
       const size = box.getSize(new THREE.Vector3());
 
-      // Compute bottom-center pivot: center.x, box.min.y, center.z
+      // bottom-center pivot
       const bottomCenter = new THREE.Vector3(center.x, box.min.y, center.z);
 
-      // Create wrapper at bottom-center pivot and reparent model into wrapper
+      // wrapper at bottom-center and reparent model into wrapper
       wrapper = new THREE.Object3D();
-      wrapper.position.copy(bottomCenter); // wrapper sits at bottom-center in world space
-
-      // Move model so its world position becomes relative to wrapper origin
-      // Equivalent to modelRoot.position = modelRoot.position - bottomCenter
+      wrapper.position.copy(bottomCenter);
       modelRoot.position.sub(bottomCenter);
-
-      // Add model into wrapper and add wrapper to scene
       wrapper.add(modelRoot);
       scene.add(wrapper);
 
-      // Frame camera around the visual center (we want camera to look at the model visually)
-      // Use the bottom-center as reference for camera lookAt but offset vertically to frame height
+      // initial camera framing: look at bottomCenter and position by height
       const fovFactor = 1.8;
       const z = Math.max(5.5, size.y * fovFactor);
       const camY = bottomCenter.y + size.y * 0.28;
       camera.position.set(bottomCenter.x, camY, z);
       camera.lookAt(bottomCenter);
 
-      // Debug pivot dot at wrapper position (bottom-center)
+      // --- NEW: nudge camera so the model's visual center is centered in the canvas ---
+      // compute the model's visual center in world space (use bounding-box center)
+      const visualCenter = center.clone();
+
+      // project visual center to NDC using current camera
+      const ndc = visualCenter.clone().project(camera); // x,y in [-1,1]
+
+      // if already centered, ndc.x/ndc.y will be near 0
+      // compute distance from camera to visual center
+      const camToCenterDist = camera.position.distanceTo(visualCenter);
+
+      // compute view size at that distance
+      const fovRad = THREE.Math.degToRad(camera.fov);
+      const viewHeight = 2 * Math.tan(fovRad / 2) * camToCenterDist;
+      const viewWidth = viewHeight * (container.clientWidth / container.clientHeight);
+
+      // camera-space offsets required to move the projected point to center
+      const camSpaceX = ndc.x * (viewWidth / 2);
+      const camSpaceY = ndc.y * (viewHeight / 2);
+
+      // compute camera right and up vectors in world space
+      const camDir = new THREE.Vector3();
+      camera.getWorldDirection(camDir); // points from camera toward scene
+      const camUp = camera.up.clone().normalize();
+      const camRight = new THREE.Vector3().crossVectors(camDir, camUp).normalize();
+
+      // world offset to apply to camera to center the visual point
+      const worldOffset = new THREE.Vector3();
+      worldOffset.addScaledVector(camRight, camSpaceX);
+      worldOffset.addScaledVector(camUp, camSpaceY);
+
+      // apply offset (move camera and keep looking at visual center)
+      camera.position.add(worldOffset);
+      camera.lookAt(visualCenter);
+
+      // Debug pivot dot at wrapper position
       pivotDot = new THREE.Mesh(
         new THREE.SphereGeometry(0.02),
         new THREE.MeshBasicMaterial({ color: 0xff9900 })
@@ -155,25 +178,22 @@ function initThree(container) {
       scene.add(pivotDot);
       window._pivotDot = pivotDot;
 
-      // Debug frame showing camera frustum projection at model visual center
+      // Debug frame
       const camWorld = camera.getWorldPosition(new THREE.Vector3());
-      const dist = camWorld.distanceTo(bottomCenter);
-      const fov = THREE.Math.degToRad(camera.fov);
-      const height = 2 * Math.tan(fov / 2) * dist;
+      const dist = camWorld.distanceTo(visualCenter);
+      const height = 2 * Math.tan(fovRad / 2) * dist;
       const width = height * (container.clientWidth / container.clientHeight);
       debugFrame = new THREE.LineSegments(
         new THREE.EdgesGeometry(new THREE.PlaneGeometry(width, height)),
         new THREE.LineBasicMaterial({ color: 0xff9900 })
       );
-      debugFrame.position.copy(bottomCenter);
+      debugFrame.position.copy(visualCenter);
       debugFrame.position.add(camera.getWorldDirection(new THREE.Vector3()).multiplyScalar(-0.01 * dist));
       debugFrame.quaternion.copy(camera.quaternion);
       scene.add(debugFrame);
 
-      // Expose wrapper for debugging
       window._modelWrapper = wrapper;
-
-      console.log('Chair loaded. bbox center:', center, 'size:', size, 'bottomCenter:', bottomCenter);
+      console.log('Chair loaded. bbox center:', center, 'size:', size, 'bottomCenter:', bottomCenter, 'ndc:', ndc);
     },
     undefined,
     (err) => {
@@ -181,7 +201,7 @@ function initThree(container) {
     }
   );
 
-  // Interaction: rotate the wrapper (so rotation happens around bottom-center pivot)
+  // Interaction: rotate wrapper
   let targetRotationX = 0;
   let targetRotationY = Math.PI;
 
@@ -199,13 +219,12 @@ function initThree(container) {
     targetRotationY = Math.PI;
   });
 
-  // Animation loop: rotate wrapper instead of modelRoot
+  // Animation loop
   function animate() {
     requestAnimationFrame(animate);
     resizeRendererToContainer();
 
     if (wrapper) {
-      // smooth shortest-path rotation on Y
       let deltaY = targetRotationY - wrapper.rotation.y;
       deltaY = ((deltaY + Math.PI) % (2 * Math.PI)) - Math.PI;
       wrapper.rotation.y += deltaY * 0.08;
@@ -216,7 +235,7 @@ function initThree(container) {
   }
   animate();
 
-  // Keep debug helpers updated on resize
+  // Resize updates
   window.addEventListener('resize', () => {
     resizeRendererToContainer();
     if (debugFrame && wrapper) {
@@ -236,6 +255,7 @@ function initThree(container) {
     }
   });
 }
+
 
 /* -----------------------------
    DOM ready: wire UI + start viewer
